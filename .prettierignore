@@ -1,0 +1,7 @@
+dist
+target
+src-tauri
+src/bindings
+src/mock/schema.json
+pnpm-lock.yaml
+Cargo.lock
