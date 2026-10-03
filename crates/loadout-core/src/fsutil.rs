@@ -252,12 +252,11 @@ pub fn resolve_ci(root: &Path, rel: &str) -> (PathBuf, String) {
     for part in rel.split('/').filter(|p| !p.is_empty()) {
         let mut chosen = part.to_string();
         if exists {
-            if current.join(part).exists() {
-                // Exact (or, on Windows, case-insensitive) hit.
-            } else if let Some(found) = find_ci(&current, part) {
-                chosen = found;
-            } else {
-                exists = false;
+            // Read the real name from the folder listing: on Windows `exists()`
+            // also matches a differently-cased name and would hide its casing.
+            match find_ci(&current, part) {
+                Some(found) => chosen = found,
+                None => exists = false,
             }
         }
         current.push(&chosen);
@@ -266,13 +265,21 @@ pub fn resolve_ci(root: &Path, rel: &str) -> (PathBuf, String) {
     (current, actual.join("/"))
 }
 
+/// The entry in `dir` called `name`, preferring an exact match over a
+/// case-insensitive one.
 fn find_ci(dir: &Path, name: &str) -> Option<String> {
     let wanted = name.to_lowercase();
-    fs::read_dir(dir)
-        .ok()?
-        .filter_map(|e| e.ok())
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .find(|n| n.to_lowercase() == wanted)
+    let mut fallback = None;
+    for entry in fs::read_dir(dir).ok()?.filter_map(|e| e.ok()) {
+        let entry_name = entry.file_name().to_string_lossy().into_owned();
+        if entry_name == name {
+            return Some(entry_name);
+        }
+        if fallback.is_none() && entry_name.to_lowercase() == wanted {
+            fallback = Some(entry_name);
+        }
+    }
+    fallback
 }
 
 /// Create the parent folders of `root/rel`, returning the folders that had to be

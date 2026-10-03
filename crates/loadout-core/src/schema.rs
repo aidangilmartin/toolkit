@@ -734,6 +734,18 @@ pub fn capture_defaults(all: &BTreeMap<String, String>) -> BTreeMap<String, Stri
 mod tests {
     use super::*;
 
+    /// The browser mock of the UI uses the real schema; keep its copy fresh.
+    #[test]
+    fn export_schema_json_for_the_ui_mock() {
+        let path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src/mock/schema.json");
+        let json = serde_json::to_string_pretty(schema()).unwrap() + "\n";
+        if std::fs::read_to_string(&path).ok().as_deref() != Some(json.as_str()) {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, json).unwrap();
+        }
+    }
+
     #[test]
     fn presets_cover_the_same_keys_and_are_valid() {
         let schema = schema();

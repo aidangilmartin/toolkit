@@ -1,0 +1,966 @@
+{
+  "settings": [
+    {
+      "key": "video/Windowed",
+      "label": "Screen type",
+      "description": "Fullscreen gives the most FPS; borderless makes alt-tabbing to Discord painless.",
+      "group": "display",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Fullscreen"
+          },
+          {
+            "value": "1",
+            "label": "Windowed"
+          },
+          {
+            "value": "2",
+            "label": "Windowed borderless"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "video/VSync",
+      "label": "VSync",
+      "description": "Off for lowest input lag in PvP.",
+      "group": "display",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "1",
+            "label": "On"
+          },
+          {
+            "value": "2",
+            "label": "Half"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "video/PauseOnFocusLoss",
+      "label": "Pause game on focus loss",
+      "description": "",
+      "group": "display",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "1",
+            "label": "On"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "video/ScreenWidth",
+      "label": "Resolution width",
+      "description": "Opt-in so profiles work on any monitor. Use with height for stretched res.",
+      "group": "display",
+      "control": {
+        "kind": "number",
+        "min": 640,
+        "max": 7680
+      },
+      "capture": "optIn",
+      "verified": true
+    },
+    {
+      "key": "video/ScreenHeight",
+      "label": "Resolution height",
+      "description": "",
+      "group": "display",
+      "control": {
+        "kind": "number",
+        "min": 480,
+        "max": 4320
+      },
+      "capture": "optIn",
+      "verified": true
+    },
+    {
+      "key": "video/RefreshRate",
+      "label": "Refresh rate",
+      "description": "Must be a rate your monitor supports at that resolution.",
+      "group": "display",
+      "control": {
+        "kind": "number",
+        "min": 30,
+        "max": 500
+      },
+      "capture": "optIn",
+      "verified": true
+    },
+    {
+      "key": "video/AspectRatio",
+      "label": "Aspect ratio",
+      "description": "",
+      "group": "display",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Auto"
+          },
+          {
+            "value": "1",
+            "label": "3:2"
+          },
+          {
+            "value": "2",
+            "label": "4:3"
+          },
+          {
+            "value": "3",
+            "label": "5:3"
+          },
+          {
+            "value": "4",
+            "label": "5:4"
+          },
+          {
+            "value": "5",
+            "label": "16:9"
+          },
+          {
+            "value": "6",
+            "label": "16:10"
+          }
+        ]
+      },
+      "capture": "optIn",
+      "verified": false
+    },
+    {
+      "key": "graphics/DX_Version",
+      "label": "DirectX version",
+      "description": "Leave on DirectX 11 unless you know you need something else.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "DirectX 10"
+          },
+          {
+            "value": "1",
+            "label": "DirectX 10.1"
+          },
+          {
+            "value": "2",
+            "label": "DirectX 11"
+          }
+        ]
+      },
+      "capture": "optIn",
+      "verified": true
+    },
+    {
+      "key": "graphics/FXAA_Enabled",
+      "label": "FXAA",
+      "description": "Cheap anti-aliasing; slightly blurs the image.",
+      "group": "graphics",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/MSAA",
+      "label": "MSAA",
+      "description": "Very expensive. Off for FPS.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "2",
+            "label": "2x"
+          },
+          {
+            "value": "4",
+            "label": "4x"
+          },
+          {
+            "value": "8",
+            "label": "8x"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/TXAA_Enabled",
+      "label": "NVIDIA TXAA",
+      "description": "Only works with MSAA on an NVIDIA card.",
+      "group": "graphics",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/CityDensity",
+      "label": "Population density",
+      "description": "Fewer peds and cars: big CPU win in busy servers.",
+      "group": "graphics",
+      "control": {
+        "kind": "slider",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/PedVarietyMultiplier",
+      "label": "Ped variety",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "slider",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/VehicleVarietyMultiplier",
+      "label": "Vehicle variety",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "slider",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/LodScale",
+      "label": "Distance scaling",
+      "description": "How far detailed models are drawn.",
+      "group": "graphics",
+      "control": {
+        "kind": "slider",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/TextureQuality",
+      "label": "Texture quality",
+      "description": "Mostly uses VRAM rather than FPS.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Normal"
+          },
+          {
+            "value": "1",
+            "label": "High"
+          },
+          {
+            "value": "2",
+            "label": "Very High"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/ShaderQuality",
+      "label": "Shader quality",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Normal"
+          },
+          {
+            "value": "1",
+            "label": "High"
+          },
+          {
+            "value": "2",
+            "label": "Very High"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/ShadowQuality",
+      "label": "Shadow quality",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "1",
+            "label": "Normal"
+          },
+          {
+            "value": "2",
+            "label": "High"
+          },
+          {
+            "value": "3",
+            "label": "Very High"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/ReflectionQuality",
+      "label": "Reflection quality",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Normal"
+          },
+          {
+            "value": "1",
+            "label": "High"
+          },
+          {
+            "value": "2",
+            "label": "Very High"
+          },
+          {
+            "value": "3",
+            "label": "Ultra"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/ReflectionMSAA",
+      "label": "Reflection MSAA",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "2",
+            "label": "2x"
+          },
+          {
+            "value": "4",
+            "label": "4x"
+          },
+          {
+            "value": "8",
+            "label": "8x"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/WaterQuality",
+      "label": "Water quality",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Normal"
+          },
+          {
+            "value": "1",
+            "label": "High"
+          },
+          {
+            "value": "2",
+            "label": "Very High"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/ParticleQuality",
+      "label": "Particles quality",
+      "description": "Explosions, smoke and muzzle flashes.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Normal"
+          },
+          {
+            "value": "1",
+            "label": "High"
+          },
+          {
+            "value": "2",
+            "label": "Very High"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/GrassQuality",
+      "label": "Grass quality",
+      "description": "Normal draws far less grass, so players can't hide in it, and it's a big FPS win.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Normal"
+          },
+          {
+            "value": "1",
+            "label": "High"
+          },
+          {
+            "value": "2",
+            "label": "Very High"
+          },
+          {
+            "value": "3",
+            "label": "Ultra"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/Shadow_SoftShadows",
+      "label": "Soft shadows",
+      "description": "Sharp is cheapest. AMD CHS / NVIDIA PCSS need the matching GPU.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Sharp"
+          },
+          {
+            "value": "1",
+            "label": "Soft"
+          },
+          {
+            "value": "2",
+            "label": "Softer"
+          },
+          {
+            "value": "3",
+            "label": "Softest"
+          },
+          {
+            "value": "4",
+            "label": "AMD CHS"
+          },
+          {
+            "value": "5",
+            "label": "NVIDIA PCSS"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/PostFX",
+      "label": "Post FX",
+      "description": "Bloom, lens effects and motion blur quality.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Normal"
+          },
+          {
+            "value": "1",
+            "label": "High"
+          },
+          {
+            "value": "2",
+            "label": "Very High"
+          },
+          {
+            "value": "3",
+            "label": "Ultra"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/MotionBlurStrength",
+      "label": "Motion blur strength",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "slider",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/DoF",
+      "label": "In-game depth of field",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/AnisotropicFiltering",
+      "label": "Anisotropic filtering",
+      "description": "Sharper textures at angles; very cheap on modern GPUs.",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "2",
+            "label": "2x"
+          },
+          {
+            "value": "4",
+            "label": "4x"
+          },
+          {
+            "value": "8",
+            "label": "8x"
+          },
+          {
+            "value": "16",
+            "label": "16x"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/SSAO",
+      "label": "Ambient occlusion",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "1",
+            "label": "Normal"
+          },
+          {
+            "value": "2",
+            "label": "High"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/Tessellation",
+      "label": "Tessellation",
+      "description": "",
+      "group": "graphics",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "1",
+            "label": "Normal"
+          },
+          {
+            "value": "2",
+            "label": "High"
+          },
+          {
+            "value": "3",
+            "label": "Very High"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/UltraShadows_Enabled",
+      "label": "High resolution shadows",
+      "description": "",
+      "group": "advanced",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/Shadow_LongShadows",
+      "label": "Long shadows",
+      "description": "",
+      "group": "advanced",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/HdStreamingInFlight",
+      "label": "High detail streaming while flying",
+      "description": "",
+      "group": "advanced",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/MaxLodScale",
+      "label": "Extended distance scaling",
+      "description": "Very heavy on CPU and GPU.",
+      "group": "advanced",
+      "control": {
+        "kind": "slider",
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.1
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/Shadow_ParticleShadows",
+      "label": "Particle shadows",
+      "description": "",
+      "group": "advanced",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/Reflection_MipBlur",
+      "label": "Reflection mip blur",
+      "description": "",
+      "group": "advanced",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/Lighting_FogVolumes",
+      "label": "Fog volumes",
+      "description": "",
+      "group": "advanced",
+      "control": {
+        "kind": "toggle"
+      },
+      "capture": "default",
+      "verified": true
+    },
+    {
+      "key": "graphics/SamplingMode",
+      "label": "Frame scaling mode",
+      "description": "Renders below/above your resolution. Check the result in-game.",
+      "group": "advanced",
+      "control": {
+        "kind": "select",
+        "options": [
+          {
+            "value": "0",
+            "label": "Off"
+          },
+          {
+            "value": "1",
+            "label": "1/2"
+          },
+          {
+            "value": "2",
+            "label": "2/3"
+          },
+          {
+            "value": "3",
+            "label": "3/4"
+          },
+          {
+            "value": "4",
+            "label": "5/6"
+          },
+          {
+            "value": "5",
+            "label": "5/4"
+          },
+          {
+            "value": "6",
+            "label": "3/2"
+          },
+          {
+            "value": "7",
+            "label": "7/4"
+          },
+          {
+            "value": "8",
+            "label": "2/1"
+          },
+          {
+            "value": "9",
+            "label": "5/2"
+          }
+        ]
+      },
+      "capture": "default",
+      "verified": false
+    }
+  ],
+  "presets": [
+    {
+      "id": "max-fps",
+      "name": "Max FPS (PvP)",
+      "description": "Everything low, grass on Normal, no blur. For arena and PvP servers.",
+      "values": {
+        "graphics/AnisotropicFiltering": "16",
+        "graphics/CityDensity": "0.000000",
+        "graphics/DoF": "false",
+        "graphics/FXAA_Enabled": "false",
+        "graphics/GrassQuality": "0",
+        "graphics/HdStreamingInFlight": "false",
+        "graphics/Lighting_FogVolumes": "false",
+        "graphics/LodScale": "0.000000",
+        "graphics/MSAA": "0",
+        "graphics/MaxLodScale": "0.000000",
+        "graphics/MotionBlurStrength": "0.000000",
+        "graphics/ParticleQuality": "0",
+        "graphics/PedVarietyMultiplier": "0.000000",
+        "graphics/PostFX": "0",
+        "graphics/ReflectionMSAA": "0",
+        "graphics/ReflectionQuality": "0",
+        "graphics/Reflection_MipBlur": "false",
+        "graphics/SSAO": "0",
+        "graphics/ShaderQuality": "0",
+        "graphics/ShadowQuality": "1",
+        "graphics/Shadow_LongShadows": "false",
+        "graphics/Shadow_ParticleShadows": "false",
+        "graphics/Shadow_SoftShadows": "0",
+        "graphics/TXAA_Enabled": "false",
+        "graphics/Tessellation": "0",
+        "graphics/TextureQuality": "0",
+        "graphics/UltraShadows_Enabled": "false",
+        "graphics/VehicleVarietyMultiplier": "0.000000",
+        "graphics/WaterQuality": "0"
+      }
+    },
+    {
+      "id": "balanced",
+      "name": "Balanced",
+      "description": "Decent looks with steady frame rates in busy cities.",
+      "values": {
+        "graphics/AnisotropicFiltering": "16",
+        "graphics/CityDensity": "0.500000",
+        "graphics/DoF": "false",
+        "graphics/FXAA_Enabled": "true",
+        "graphics/GrassQuality": "1",
+        "graphics/HdStreamingInFlight": "false",
+        "graphics/Lighting_FogVolumes": "true",
+        "graphics/LodScale": "0.500000",
+        "graphics/MSAA": "0",
+        "graphics/MaxLodScale": "0.000000",
+        "graphics/MotionBlurStrength": "0.000000",
+        "graphics/ParticleQuality": "1",
+        "graphics/PedVarietyMultiplier": "0.500000",
+        "graphics/PostFX": "1",
+        "graphics/ReflectionMSAA": "0",
+        "graphics/ReflectionQuality": "1",
+        "graphics/Reflection_MipBlur": "true",
+        "graphics/SSAO": "1",
+        "graphics/ShaderQuality": "1",
+        "graphics/ShadowQuality": "2",
+        "graphics/Shadow_LongShadows": "false",
+        "graphics/Shadow_ParticleShadows": "true",
+        "graphics/Shadow_SoftShadows": "1",
+        "graphics/TXAA_Enabled": "false",
+        "graphics/Tessellation": "1",
+        "graphics/TextureQuality": "1",
+        "graphics/UltraShadows_Enabled": "false",
+        "graphics/VehicleVarietyMultiplier": "0.500000",
+        "graphics/WaterQuality": "1"
+      }
+    },
+    {
+      "id": "high",
+      "name": "High (RP)",
+      "description": "Good-looking roleplay on a mid/high-end PC.",
+      "values": {
+        "graphics/AnisotropicFiltering": "16",
+        "graphics/CityDensity": "0.800000",
+        "graphics/DoF": "true",
+        "graphics/FXAA_Enabled": "true",
+        "graphics/GrassQuality": "2",
+        "graphics/HdStreamingInFlight": "true",
+        "graphics/Lighting_FogVolumes": "true",
+        "graphics/LodScale": "0.800000",
+        "graphics/MSAA": "0",
+        "graphics/MaxLodScale": "0.300000",
+        "graphics/MotionBlurStrength": "0.000000",
+        "graphics/ParticleQuality": "2",
+        "graphics/PedVarietyMultiplier": "0.800000",
+        "graphics/PostFX": "2",
+        "graphics/ReflectionMSAA": "2",
+        "graphics/ReflectionQuality": "2",
+        "graphics/Reflection_MipBlur": "true",
+        "graphics/SSAO": "2",
+        "graphics/ShaderQuality": "2",
+        "graphics/ShadowQuality": "3",
+        "graphics/Shadow_LongShadows": "true",
+        "graphics/Shadow_ParticleShadows": "true",
+        "graphics/Shadow_SoftShadows": "2",
+        "graphics/TXAA_Enabled": "false",
+        "graphics/Tessellation": "2",
+        "graphics/TextureQuality": "2",
+        "graphics/UltraShadows_Enabled": "false",
+        "graphics/VehicleVarietyMultiplier": "0.800000",
+        "graphics/WaterQuality": "2"
+      }
+    },
+    {
+      "id": "ultra",
+      "name": "Ultra (cinematic)",
+      "description": "Maximum quality for screenshots and slow-paced RP.",
+      "values": {
+        "graphics/AnisotropicFiltering": "16",
+        "graphics/CityDensity": "1.000000",
+        "graphics/DoF": "true",
+        "graphics/FXAA_Enabled": "true",
+        "graphics/GrassQuality": "3",
+        "graphics/HdStreamingInFlight": "true",
+        "graphics/Lighting_FogVolumes": "true",
+        "graphics/LodScale": "1.000000",
+        "graphics/MSAA": "2",
+        "graphics/MaxLodScale": "0.500000",
+        "graphics/MotionBlurStrength": "0.000000",
+        "graphics/ParticleQuality": "2",
+        "graphics/PedVarietyMultiplier": "1.000000",
+        "graphics/PostFX": "3",
+        "graphics/ReflectionMSAA": "4",
+        "graphics/ReflectionQuality": "3",
+        "graphics/Reflection_MipBlur": "true",
+        "graphics/SSAO": "2",
+        "graphics/ShaderQuality": "2",
+        "graphics/ShadowQuality": "3",
+        "graphics/Shadow_LongShadows": "true",
+        "graphics/Shadow_ParticleShadows": "true",
+        "graphics/Shadow_SoftShadows": "3",
+        "graphics/TXAA_Enabled": "false",
+        "graphics/Tessellation": "3",
+        "graphics/TextureQuality": "2",
+        "graphics/UltraShadows_Enabled": "true",
+        "graphics/VehicleVarietyMultiplier": "1.000000",
+        "graphics/WaterQuality": "2"
+      }
+    }
+  ],
+  "excluded": [
+    "version",
+    "configSource",
+    "VideoCardDescription",
+    "video/AdapterIndex",
+    "video/OutputIndex",
+    "video/Stereo",
+    "video/Convergence",
+    "video/Separation"
+  ]
+}

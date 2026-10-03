@@ -441,6 +441,17 @@ pub enum PathSource {
     Missing,
 }
 
+/// Folders the UI can ask to open in Explorer.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum FolderTarget {
+    Data,
+    Logs,
+    Pack { id: String },
+    Game { key: PathKey },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]

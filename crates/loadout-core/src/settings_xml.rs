@@ -456,7 +456,10 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
-    const SAMPLE: &str = include_str!("../tests/fixtures/settings.xml");
+    /// The fixture with LF line endings, whatever git did on checkout.
+    fn sample() -> String {
+        include_str!("../tests/fixtures/settings.xml").replace("\r\n", "\n")
+    }
 
     fn map(pairs: &[(&str, &str)]) -> BTreeMap<String, String> {
         pairs
@@ -467,7 +470,7 @@ mod tests {
 
     #[test]
     fn reads_values_from_a_real_shaped_file() {
-        let doc = SettingsXml::parse(SAMPLE.as_bytes()).unwrap();
+        let doc = SettingsXml::parse(sample().as_bytes()).unwrap();
         let values = doc.values();
         assert_eq!(values["version"], "27");
         assert_eq!(values["configSource"], "SMC_AUTO");
@@ -483,22 +486,22 @@ mod tests {
 
     #[test]
     fn unchanged_patch_is_byte_identical() {
-        let doc = SettingsXml::parse(SAMPLE.as_bytes()).unwrap();
+        let doc = SettingsXml::parse(sample().as_bytes()).unwrap();
         let out = doc.patch(&map(&[("graphics/ShadowQuality", "3")]));
         assert!(out.changes.is_empty());
-        assert_eq!(out.bytes, SAMPLE.as_bytes());
+        assert_eq!(out.bytes, sample().as_bytes());
     }
 
     #[test]
     fn patch_only_touches_requested_values() {
-        let doc = SettingsXml::parse(SAMPLE.as_bytes()).unwrap();
+        let doc = SettingsXml::parse(sample().as_bytes()).unwrap();
         let out = doc.patch(&map(&[
             ("graphics/ShadowQuality", "1"),
             ("video/Windowed", "2"),
             ("configSource", "SMC_USER"),
         ]));
         assert_eq!(out.changes.len(), 3);
-        let expected = SAMPLE
+        let expected = sample()
             .replace(
                 "<ShadowQuality value=\"3\" />",
                 "<ShadowQuality value=\"1\" />",
@@ -513,7 +516,7 @@ mod tests {
 
     #[test]
     fn missing_keys_are_inserted_with_matching_indentation() {
-        let crlf = SAMPLE.replace('\n', "\r\n");
+        let crlf = sample().replace('\n', "\r\n");
         let doc = SettingsXml::parse(crlf.as_bytes()).unwrap();
         let out = doc.patch(&map(&[
             ("graphics/BrandNewSetting", "0.500000"),
@@ -532,7 +535,7 @@ mod tests {
     #[test]
     fn bom_and_entities_survive() {
         let mut bytes = vec![0xEF, 0xBB, 0xBF];
-        bytes.extend_from_slice(SAMPLE.as_bytes());
+        bytes.extend_from_slice(sample().as_bytes());
         let doc = SettingsXml::parse(&bytes).unwrap();
         let out = doc.patch(&map(&[("graphics/MSAA", "4")]));
         assert_eq!(&out.bytes[..3], &[0xEF, 0xBB, 0xBF]);

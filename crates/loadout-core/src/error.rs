@@ -37,6 +37,19 @@ impl Error {
             source,
         }
     }
+
+    /// The message shown in the UI, with a hint for the usual Windows culprit.
+    pub fn user_message(&self) -> String {
+        let mut message = self.to_string();
+        if let Error::Io { source, .. } = self {
+            if source.kind() == std::io::ErrorKind::PermissionDenied {
+                message.push_str(
+                    ". Windows blocked access: make sure the game is closed. If GTA V is installed under Program Files, run Loadout as administrator.",
+                );
+            }
+        }
+        message
+    }
 }
 
 /// Attach a human readable context (usually "verb + path") to IO errors.

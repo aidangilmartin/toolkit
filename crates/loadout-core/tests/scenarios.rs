@@ -19,7 +19,12 @@ use loadout_core::settings_xml::SettingsXml;
 use loadout_core::{Error, Loadout};
 use pretty_assertions::assert_eq;
 
-const SETTINGS: &str = include_str!("fixtures/settings.xml");
+/// The fixture with CRLF line endings, like the game writes it (whatever git did on checkout).
+fn settings_crlf() -> String {
+    include_str!("fixtures/settings.xml")
+        .replace("\r\n", "\n")
+        .replace('\n', "\r\n")
+}
 
 struct World {
     _tmp: tempfile::TempDir,
@@ -56,17 +61,14 @@ impl World {
         );
         fs::create_dir_all(app_dir.join("mods")).unwrap();
         let cfx = root.join("Roaming/CitizenFX");
-        write(
-            &cfx.join("gta5_settings.xml"),
-            SETTINGS.replace('\n', "\r\n"),
-        );
+        write(&cfx.join("gta5_settings.xml"), settings_crlf());
         write(
             &cfx.join("fivem.cfg"),
             "seta profile_fpsFieldOfView \"5\"\nseta profile_sfxVolume \"8\"\nbind keyboard \"F1\" \"+menu\"\n",
         );
         write(
             &root.join("Documents/Rockstar Games/GTA V/settings.xml"),
-            SETTINGS.replace('\n', "\r\n"),
+            settings_crlf(),
         );
         let procs = Arc::new(FakeProcesses::none());
         let app = open(&root, procs.clone());
@@ -291,7 +293,7 @@ fn arena_rp_vanilla_round_trip() {
     // GTA V's own settings weren't asked for.
     assert_eq!(
         fs::read_to_string(w.docs_settings()).unwrap(),
-        SETTINGS.replace('\n', "\r\n")
+        settings_crlf()
     );
     let status = w.app.status().unwrap();
     assert_eq!(status.active_profile_id.as_deref(), Some(arena.as_str()));
