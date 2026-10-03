@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Core (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy -p loadout-core --all-targets -- -D warnings
+      - run: cargo test -p loadout-core
+      - name: Generated TypeScript bindings are up to date
+        run: git diff --exit-code -- src/bindings src/mock/schema.json
+
+  web:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  windows:
+    name: Windows (tests + installer)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Core tests on real Windows paths
+        run: cargo test -p loadout-core
+      - name: Build the frontend
+        run: pnpm build
+      - name: Clippy (desktop app)
+        run: cargo clippy -p loadout --all-targets -- -D warnings
+      - name: Build the installer
+        run: pnpm tauri build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loadout-windows
+          path: |
+            target/release/bundle/nsis/*.exe
+            target/release/loadout.exe
+          if-no-files-found: error
