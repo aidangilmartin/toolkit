@@ -1,0 +1,32 @@
+[package]
+name = "loadout-core"
+description = "Profile, settings and pack deployment engine for Loadout (GTA V / FiveM)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+ts-rs = { workspace = true }
+quick-xml = "0.42"
+blake3 = "1.8"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+dirs = "7"
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+uuid = { version = "1", features = ["v4"] }
+walkdir = "2.5"
+zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs", "deflate64"] }
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+tempfile = "3"
+filetime = "0.2"
+walkdir = "2.5"

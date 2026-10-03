@@ -1,0 +1,19 @@
+# Rust
+/target
+
+# Node / Vite
+node_modules/
+/dist
+*.tsbuildinfo
+
+# Tauri generated schemas
+/src-tauri/gen/schemas
+
+# Test & tooling output
+/test-results
+/playwright-report
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
