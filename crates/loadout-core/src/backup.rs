@@ -35,7 +35,7 @@ pub fn create_from_files(
     let mut entries = Vec::new();
     for (target, original, copy) in files {
         let file = target.file_stem().to_string();
-        fs::copy(copy, dir.join(&file)).ctx_path("back up", copy)?;
+        fsutil::copy_plain(copy, &dir.join(&file)).ctx_path("back up", copy)?;
         entries.push(SnapshotFile {
             target: *target,
             original_path: original.display().to_string(),

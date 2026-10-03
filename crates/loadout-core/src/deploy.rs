@@ -760,7 +760,7 @@ fn run_step(
         Op::Settings { .. } => {
             if dest.is_file() {
                 let copy = tx_dir.join(format!("pre-{i}"));
-                fs::copy(&dest, &copy).ctx_path("back up", &dest)?;
+                fsutil::copy_plain(&dest, &copy).ctx_path("back up", &dest)?;
                 PreImage::Saved(copy.display().to_string())
             } else {
                 PreImage::Absent
@@ -772,12 +772,12 @@ fn run_step(
                 PreImage::Pack(ours.display().to_string())
             } else if install.backup_existing && dest.is_file() {
                 let backup = store.originals_dir().join(fsutil::new_id());
-                fs::copy(&dest, &backup).ctx_path("back up", &dest)?;
+                fsutil::copy_plain(&dest, &backup).ctx_path("back up", &dest)?;
                 created_original = Some(backup.clone());
                 PreImage::Saved(backup.display().to_string())
             } else if dest.is_file() {
                 let copy = tx_dir.join(format!("pre-{i}"));
-                fs::copy(&dest, &copy).ctx_path("back up", &dest)?;
+                fsutil::copy_plain(&dest, &copy).ctx_path("back up", &dest)?;
                 PreImage::Saved(copy.display().to_string())
             } else {
                 PreImage::Absent
@@ -788,7 +788,7 @@ fn run_step(
                 PreImage::Pack(ours.display().to_string())
             } else {
                 let copy = tx_dir.join(format!("pre-{i}"));
-                fs::copy(&dest, &copy).ctx_path("back up", &dest)?;
+                fsutil::copy_plain(&dest, &copy).ctx_path("back up", &dest)?;
                 PreImage::Saved(copy.display().to_string())
             }
         }
@@ -930,6 +930,9 @@ fn finish_commit(
     prepared: &Prepared,
 ) -> Result<Option<String>> {
     fsutil::copy_atomic(&tx_dir.join(NEW_STATE), &store.path(store::STATE))?;
+    // The new ledger is in place: drop the journal first so nothing can ever
+    // "recover" this transaction again, even if tidying up below fails.
+    fsutil::remove_file_if_exists(&tx_dir.join(JOURNAL))?;
     for file in &journal.delete_on_commit {
         let _ = fsutil::remove_file_if_exists(Path::new(file));
     }
@@ -973,6 +976,7 @@ pub fn recover(store: &Store) -> Result<Option<String>> {
         };
         if journal.committed {
             fsutil::copy_atomic(&dir.join(NEW_STATE), &store.path(store::STATE))?;
+            fsutil::remove_file_if_exists(&dir.join(JOURNAL))?;
             for file in &journal.delete_on_commit {
                 let _ = fsutil::remove_file_if_exists(Path::new(file));
             }
@@ -995,7 +999,33 @@ pub fn recover(store: &Store) -> Result<Option<String>> {
             }
         }
     }
+    remove_orphaned_originals(store);
     Ok((!notices.is_empty()).then(|| notices.join(" ")))
+}
+
+/// Delete backups of originals that no ledger entry points to any more (left
+/// behind if Loadout stopped between committing and tidying up). Only called at
+/// startup, when no transaction is running.
+fn remove_orphaned_originals(store: &Store) {
+    let Ok(state) = store.load::<DeployState>(store::STATE) else {
+        return;
+    };
+    let referenced: std::collections::HashSet<&str> = state
+        .files
+        .iter()
+        .filter_map(|f| f.original.as_ref().map(|o| o.file.as_str()))
+        .collect();
+    for entry in fs::read_dir(store.originals_dir())
+        .into_iter()
+        .flatten()
+        .flatten()
+    {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !referenced.contains(name.as_str()) {
+            log::info!("Removing orphaned backup {name}");
+            let _ = fsutil::remove_file_if_exists(&entry.path());
+        }
+    }
 }
 
 /// True when a file Loadout installed is still exactly as it left it.

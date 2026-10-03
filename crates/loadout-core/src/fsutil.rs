@@ -182,6 +182,16 @@ fn replace_with(tmp: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Copy a file for safekeeping. The copy is always writable, so a read-only
+/// game file doesn't produce a backup that Windows then refuses to delete.
+pub fn copy_plain(src: &Path, dest: &Path) -> io::Result<u64> {
+    let bytes = fs::copy(src, dest)?;
+    if fs::metadata(dest)?.permissions().readonly() {
+        set_readonly(dest, false)?;
+    }
+    Ok(bytes)
+}
+
 /// Delete a file (clearing read-only first). Returns false if it didn't exist.
 pub fn remove_file_if_exists(path: &Path) -> Result<bool> {
     match fs::symlink_metadata(path) {

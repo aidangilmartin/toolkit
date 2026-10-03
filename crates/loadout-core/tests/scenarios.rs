@@ -687,3 +687,36 @@ fn import_wizard_layout_override() {
         .collect();
     assert_eq!(dests, vec!["mods/WEAPONS_PLAYER.rpf"]);
 }
+
+#[test]
+fn leftovers_after_commit_never_rewind_the_ledger() {
+    let mut w = World::new();
+    let (arena, _) = arena_and_rp(&w);
+    w.app.apply(Some(&arena), &mut |_| {}).unwrap();
+    let originals = w.originals_count();
+    assert_eq!(originals, 3);
+
+    // A transaction folder that couldn't be fully deleted after committing: no
+    // journal any more, but an old copy of the ledger is still lying around.
+    let tx = w.app.data_dir().join("backups/tx/20260101-000000-leftover");
+    write(&tx.join("pre-0"), "old settings");
+    write(&tx.join("state.new.json"), "{\"files\": []}");
+    // …and a backup that nothing references.
+    write(&w.app.data_dir().join("backups/originals/stray"), "junk");
+
+    w.reopen();
+    let status = w.app.status().unwrap();
+    assert_eq!(status.active_profile_id.as_deref(), Some(arena.as_str()));
+    assert_eq!(status.deployed_files.len(), 4);
+    assert!(status.recovery_notice.is_none());
+    w.data_dir_is_clean();
+    assert_eq!(w.originals_count(), originals);
+
+    // Everything still comes back cleanly.
+    w.app.apply(None, &mut |_| {}).unwrap();
+    assert_eq!(
+        fs::read(w.gta("x64/audio/sfx/WEAPONS_PLAYER.rpf")).unwrap(),
+        b"vanilla weapons"
+    );
+    assert_eq!(w.originals_count(), 0);
+}
