@@ -144,4 +144,9 @@ The mock backend accepts `?setup=1` (first-run wizard), `?running=1` (FiveM runn
 `?drift=1` (in-game changes) in the URL.
 
 CI checks formatting, clippy, lints and all tests. It also runs the core tests on Windows and
-builds the installer as a downloadable artifact. Pushing a `v*` tag creates a draft release.
+builds the installer as a downloadable artifact.
+
+**Releasing:** bump the version in `src-tauri/tauri.conf.json`, `package.json` and `Cargo.toml`,
+then push to the default branch. The Release workflow publishes `v<version>` with the installer
+and the portable exe, as long as that version has no release yet. Pushing a matching `v*` tag, or
+running the workflow from the Actions tab, also works.

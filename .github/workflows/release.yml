@@ -1,10 +1,14 @@
 name: Release
 
-# Builds the Windows installer and a portable exe, and publishes them as a GitHub release.
-# Start it by pushing a tag like v0.1.0, or run it by hand (Actions → Release → Run workflow)
-# with the tag to create. The tag must match the version in src-tauri/tauri.conf.json.
+# Publishes a GitHub release with the Windows installer and a portable exe, tagged after the
+# app version in src-tauri/tauri.conf.json, whenever that version has no release yet.
+# It runs when:
+# - a commit lands on the default branch (so bumping the version releases it),
+# - a tag like v0.1.0 is pushed (it must match the app version), or
+# - it's started by hand from the Actions tab (Release → Run workflow).
 on:
   push:
+    branches: ["**"]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -16,20 +20,57 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  release:
-    runs-on: windows-latest
-    env:
-      TAG: ${{ inputs.tag || github.ref_name }}
+  check:
+    name: Decide what to release
+    # Branch pushes only count on the default branch.
+    if: github.event_name != 'push' || github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.decide.outputs.tag }}
+      publish: ${{ steps.decide.outputs.publish }}
     steps:
       - uses: actions/checkout@v5
-      - name: Check the tag matches the app version
-        shell: pwsh
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          if ("v$version" -ne $env:TAG) {
-            throw "Tag $env:TAG doesn't match the app version $version in src-tauri/tauri.conf.json"
-          }
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          if [ -n "$INPUT_TAG" ]; then
+            tag="$INPUT_TAG"
+          elif [ "$GITHUB_REF_TYPE" = tag ]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="v$version"
+          fi
+          if [ "$tag" != "v$version" ]; then
+            echo "::error::Tag $tag doesn't match the app version $version in src-tauri/tauri.conf.json"
+            exit 1
+          fi
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $tag already exists, nothing to do."
+            publish=false
+          else
+            echo "Releasing $tag."
+            publish=true
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Build and publish
+    needs: check
+    if: needs.check.outputs.publish == 'true'
+    runs-on: windows-latest
+    env:
+      TAG: ${{ needs.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: pnpm/action-setup@v4
