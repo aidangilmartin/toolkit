@@ -34,14 +34,18 @@ a server. No more editing `settings.xml` by hand or dragging `.rpf` files around
 
 ## Install
 
-Download the Windows installer (`Loadout_x.y.z_x64-setup.exe`) from the latest
-[release](../../releases), or from the `loadout-windows` artifact of a CI run on the **Actions**
-tab. It installs per-user, with no admin rights needed.
+Download Loadout from the **[latest release](../../releases/latest)**:
+
+- **`Loadout_x.y.z_x64-setup.exe`**: the installer (recommended). It installs per-user, with no
+  admin rights needed.
+- **`Loadout_x.y.z_x64-portable.exe`**: a single exe with nothing to install.
+
+Then:
 
 - Windows will probably show a **SmartScreen** warning because the app isn't code-signed. Click
   _More info → Run anyway_.
 - Loadout needs Microsoft Edge WebView2, which Windows 10/11 already have. If it's missing, the
-  installer downloads it.
+  installer downloads it. The portable exe needs it to be there already.
 - **GTA V installed under `Program Files`?** Windows only lets administrators change files
   there. Sound packs that replace game audio need _Run as administrator_ in that case.
   Everything else works without it.
