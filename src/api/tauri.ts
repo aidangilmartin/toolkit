@@ -24,15 +24,11 @@ export const tauriApi: Api = {
   duplicateProfile: (id) => invoke("duplicate_profile", { id }),
   deleteProfile: (id) => invoke("delete_profile", { id }),
 
-  listServers: () => invoke("list_servers"),
-  saveServer: (server) => invoke("save_server", { server }),
-  deleteServer: (id) => invoke("delete_server", { id }),
+  lookupServer: (address) => invoke("lookup_server", { address }),
+  readLogoFile: (path) => invoke("read_logo_file", { path }),
 
   listPacks: () => invoke("list_packs"),
-  inspectPack: (path, layout) => invoke("inspect_pack", { path, layout: layout ?? null }),
-  importPack: (proposal) => invoke("import_pack", { proposal }),
-  updatePack: (id, name, category, notes) => invoke("update_pack", { id, name, category, notes }),
-  deletePack: (id) => invoke("delete_pack", { id }),
+  importProfileFile: (path, kind) => invoke("import_profile_file", { path, kind }),
 
   planApply: (profileId) => invoke("plan_apply", { profileId }),
   applyProfile: (profileId) => invoke("apply_profile", { profileId }),
@@ -44,19 +40,36 @@ export const tauriApi: Api = {
   deleteSnapshot: (id) => invoke("delete_snapshot", { id }),
 
   launchFivem: () => invoke("launch_fivem"),
-  connectServer: (address, serverId) =>
-    invoke("connect_server", { address, serverId: serverId ?? null }),
+  connectServer: (address) => invoke("connect_server", { address }),
   openFolder: (target) => invoke("open_folder", { target }),
 
   pickFolder: async (title) => {
     const picked = await open({ directory: true, multiple: false, title });
     return typeof picked === "string" ? picked : null;
   },
-  pickPackFile: async () => {
+  pickProfileFiles: async (kind) => {
+    const mod = kind === "mod";
+    const picked = await open({
+      multiple: mod,
+      title: {
+        weaponSounds: "Choose your WEAPONS_PLAYER.rpf",
+        residentSounds: "Choose your RESIDENT.rpf",
+        mod: "Choose mods for the mods folder",
+      }[kind],
+      filters: [
+        mod
+          ? { name: "Mods (.rpf or .zip)", extensions: ["rpf", "zip"] }
+          : { name: "Sound file (.rpf)", extensions: ["rpf"] },
+      ],
+    });
+    if (picked === null) return [];
+    return Array.isArray(picked) ? picked : [picked];
+  },
+  pickImage: async () => {
     const picked = await open({
       multiple: false,
-      title: "Choose a pack",
-      filters: [{ name: "Pack (.zip or .rpf)", extensions: ["zip", "rpf"] }],
+      title: "Choose a logo",
+      filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "webp"] }],
     });
     return typeof picked === "string" ? picked : null;
   },

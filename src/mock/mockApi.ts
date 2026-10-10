@@ -12,13 +12,12 @@ import type {
   DeployedFile,
   FileOpPlan,
   GraphicsSchema,
-  ImportProposal,
   KeyChange,
   Pack,
-  PackLayout,
   Profile,
+  ProfileFileKind,
   Progress,
-  Server,
+  ServerInfo,
   SettingsFilePlan,
   Snapshot,
 } from "../api/types";
@@ -37,72 +36,70 @@ const clean = (values: { [key in string]?: string }): Values =>
 const preset = (name: string): Values =>
   clean(schema.presets.find((p) => p.id === name)?.values ?? {});
 
-function packFiles(paths: [string, number][]) {
-  return paths.map(([path, size], i) => ({ path, size, hash: `h${i}${path.length}` }));
+/** A server logo like the ones FiveM servers ship (96×96), drawn as SVG for the mock. */
+function logo(from: string, to: string, text: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
+    `<stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>` +
+    `<rect width="96" height="96" rx="22" fill="url(#g)"/>` +
+    `<circle cx="48" cy="48" r="34" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="3"/>` +
+    `<text x="48" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800" ` +
+    `text-anchor="middle" fill="#fff">${text}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/** Servers the mock "finds" when looked up. */
+const knownServers: Record<string, Omit<ServerInfo, "address">> = {
+  "cfx.re/join/q4x9za": {
+    name: "Arena PvP EU",
+    icon: logo("#ef4444", "#7c2d12", "AP"),
+    players: 87,
+    maxPlayers: 128,
+  },
+  "cfx.re/join/lsl8rp": {
+    name: "Los Santos Life RP",
+    icon: logo("#3b82f6", "#1e1b4b", "LS"),
+    players: 212,
+    maxPlayers: 256,
+  },
+};
+
+const SOUND_DEST: Record<Exclude<ProfileFileKind, "mod">, string> = {
+  weaponSounds: "x64/audio/sfx/WEAPONS_PLAYER.rpf",
+  residentSounds: "x64/audio/sfx/RESIDENT.rpf",
+};
+
+function profileFile(
+  packId: string,
+  kind: ProfileFileKind,
+  sourceName: string,
+  size: number,
+  daysAgo = 3,
+): Pack {
+  const stem = sourceName.replace(/\.(rpf|zip)$/i, "");
+  const path = kind === "mod" ? `mods/${stem}.rpf` : SOUND_DEST[kind];
+  return {
+    id: packId,
+    name: stem,
+    category: kind === "mod" ? "mods" : "soundPack",
+    root: kind === "mod" ? "fivemApp" : "gtaInstall",
+    files: [{ path, size, hash: `h-${packId}` }],
+    docs: [],
+    totalSize: size,
+    sourceName,
+    importedAt: ago(60 * 24 * daysAgo),
+    notes: "",
+    profileFile: kind,
+  };
 }
 
 const packs: Pack[] = [
-  {
-    id: "p-sounds",
-    name: "Crisp PvP Gun Sounds",
-    category: "soundPack",
-    root: "gtaInstall",
-    files: packFiles([
-      ["x64/audio/sfx/RESIDENT.rpf", 41_200_000],
-      ["x64/audio/sfx/WEAPONS_PLAYER.rpf", 146_800_000],
-    ]),
-    docs: ["readme.txt"],
-    totalSize: 188_000_000,
-    sourceName: "Crisp PvP Gun Sounds v3.zip",
-    importedAt: ago(60 * 26),
-    notes: "",
-  },
-  {
-    id: "p-citizen",
-    name: "Clean PvP Citizen",
-    category: "citizen",
-    root: "fivemApp",
-    files: packFiles([
-      ["citizen/common/data/timecycle/timecycle_mods_4.xml", 820_000],
-      ["citizen/common/data/visualsettings.dat", 95_000],
-      ["citizen/common/data/effects/peds/first_person.meta", 12_000],
-      ["citizen/platform/levels/gta5/clouds.ytd", 5_300_000],
-    ]),
-    docs: [],
-    totalSize: 6_227_000,
-    sourceName: "clean-pvp-citizen",
-    importedAt: ago(60 * 50),
-    notes: "",
-  },
-  {
-    id: "p-reshade",
-    name: "Cinematic ReShade",
-    category: "reshade",
-    root: "fivemApp",
-    files: packFiles([
-      ["plugins/ReShade.ini", 4_000],
-      ["plugins/dxgi.dll", 6_100_000],
-      ["plugins/cinematic.ini", 6_000],
-      ["plugins/reshade-shaders/Shaders/qUINT_lightroom.fx", 52_000],
-    ]),
-    docs: ["preview.jpg"],
-    totalSize: 6_162_000,
-    sourceName: "Cinematic ReShade",
-    importedAt: ago(60 * 24 * 6),
-    notes: "",
-  },
-  {
-    id: "p-nve",
-    name: "Night Lights Visual Mod",
-    category: "mods",
-    root: "fivemApp",
-    files: packFiles([["mods/night_lights.rpf", 412_000_000]]),
-    docs: [],
-    totalSize: 412_000_000,
-    sourceName: "night_lights.rpf",
-    importedAt: ago(60 * 24 * 12),
-    notes: "",
-  },
+  profileFile("f-arena-weapons", "weaponSounds", "Crisp PvP Weapons v3.rpf", 146_800_000),
+  profileFile("f-arena-resident", "residentSounds", "Crisp PvP Resident.rpf", 41_200_000),
+  profileFile("f-arena-skies", "mod", "clear_skies.rpf", 6_100_000, 4),
+  profileFile("f-rp-blood", "mod", "better_blood.rpf", 18_400_000, 6),
+  profileFile("f-rp-lights", "mod", "night_lights.rpf", 412_000_000, 12),
 ];
 
 const profiles: Profile[] = [
@@ -114,7 +111,10 @@ const profiles: Profile[] = [
     graphics: { ...preset("max-fps"), "video/Windowed": "0", "video/VSync": "0" },
     applyToGta: false,
     fivemCfg: { profile_fpsFieldOfView: "10", profile_gfxBrightness: "6" },
-    packs: ["p-sounds", "p-citizen"],
+    packs: ["f-arena-weapons", "f-arena-resident", "f-arena-skies"],
+    serverAddress: "cfx.re/join/q4x9za",
+    serverName: knownServers["cfx.re/join/q4x9za"].name,
+    serverIcon: knownServers["cfx.re/join/q4x9za"].icon,
     createdAt: ago(60 * 24 * 5),
     updatedAt: ago(60 * 3),
   },
@@ -126,7 +126,10 @@ const profiles: Profile[] = [
     graphics: { ...preset("ultra"), "video/Windowed": "2" },
     applyToGta: true,
     fivemCfg: { profile_fpsFieldOfView: "5" },
-    packs: ["p-reshade"],
+    packs: ["f-rp-blood", "f-rp-lights"],
+    serverAddress: "cfx.re/join/lsl8rp",
+    serverName: knownServers["cfx.re/join/lsl8rp"].name,
+    serverIcon: knownServers["cfx.re/join/lsl8rp"].icon,
     createdAt: ago(60 * 24 * 5),
     updatedAt: ago(60 * 24),
   },
@@ -139,34 +142,27 @@ const profiles: Profile[] = [
     applyToGta: false,
     fivemCfg: {},
     packs: [],
+    serverAddress: null,
+    serverName: null,
+    serverIcon: null,
     createdAt: ago(60 * 24 * 2),
     updatedAt: ago(60 * 24 * 2),
   },
 ];
 
-const servers: Server[] = [
-  {
-    id: "s1",
-    name: "Arena PvP EU",
-    address: "cfx.re/join/q4x9za",
-    profileId: "arena",
-    lastPlayedAt: ago(90),
-  },
-  {
-    id: "s2",
-    name: "Los Santos Life RP",
-    address: "cfx.re/join/lsl8rp",
-    profileId: "rp",
-    lastPlayedAt: ago(60 * 24),
-  },
-  {
-    id: "s3",
-    name: "Friends' server",
-    address: "51.68.12.4:30120",
-    profileId: null,
-    lastPlayedAt: null,
-  },
-];
+/** Same rules as the Rust side (launch::normalize_server_address), roughly. */
+function normalizeAddress(input: string): string {
+  const address = input
+    .trim()
+    .replace(/^(fivem:\/\/connect\/|https?:\/\/)/i, "")
+    .replace(/\/+$/, "");
+  if (/^\w{5,8}$/.test(address)) return `cfx.re/join/${address}`;
+  if (/^cfx\.re\/join\/\w{5,8}$/i.test(address)) return address;
+  if (/^([\w-]+\.)+[\w-]+(:\d{1,5})?$/.test(address) || /^localhost(:\d{1,5})?$/.test(address)) {
+    return address;
+  }
+  throw "Use an IP:port (like 1.2.3.4:30120), a hostname, or a cfx.re/join code.";
+}
 
 const params = new URLSearchParams(globalThis.location?.search ?? "");
 
@@ -436,83 +432,6 @@ function status(): AppStatus {
   };
 }
 
-function proposalFor(path: string, layout?: PackLayout | null): ImportProposal {
-  const name =
-    path
-      .split(/[\\/]/)
-      .pop()
-      ?.replace(/\.(zip|rpf)$/i, "") ?? "New pack";
-  const isSound = /sound|gun|weapon|audio/i.test(path);
-  const chosen: PackLayout = layout ?? (isSound ? "gtaAudio" : "fivemTree");
-  const deploy =
-    chosen === "gtaAudio"
-      ? [
-          ["WEAPONS_PLAYER.rpf", "x64/audio/sfx/WEAPONS_PLAYER.rpf", 151_000_000],
-          ["RESIDENT.rpf", "x64/audio/sfx/RESIDENT.rpf", 40_100_000],
-        ]
-      : [
-          [
-            "citizen/common/data/timecycle/timecycle_mods_4.xml",
-            "citizen/common/data/timecycle/timecycle_mods_4.xml",
-            790_000,
-          ],
-          [
-            "citizen/common/data/visualsettings.dat",
-            "citizen/common/data/visualsettings.dat",
-            92_000,
-          ],
-        ];
-  return {
-    sourcePath: path,
-    sourceName: path.split(/[\\/]/).pop() ?? path,
-    name,
-    category: chosen === "gtaAudio" ? "soundPack" : "citizen",
-    layout: chosen,
-    root: chosen === "gtaAudio" ? "gtaInstall" : "fivemApp",
-    files: [
-      ...deploy.map(([source, dest, size]) => ({
-        source: `${name}/${source}`,
-        dest: String(dest),
-        kind: "deploy" as const,
-        reason: null,
-        size: Number(size),
-        include: true,
-      })),
-      {
-        source: `${name}/README.txt`,
-        dest: "README.txt",
-        kind: "doc",
-        reason: null,
-        size: 1_200,
-        include: true,
-      },
-      {
-        source: `${name}/Install.exe`,
-        dest: "Install.exe",
-        kind: "blocked",
-        reason: "Programs and scripts can't be installed",
-        size: 2_400_000,
-        include: false,
-      },
-      {
-        source: "__MACOSX/._WEAPONS_PLAYER.rpf",
-        dest: "",
-        kind: "ignored",
-        reason: "System junk file",
-        size: 220,
-        include: false,
-      },
-    ],
-    warnings:
-      chosen === "gtaAudio"
-        ? [
-            "Some files are blocked and won't be imported.",
-            'This pack replaces GTA V game files. That also affects Story Mode and GTA Online, so use "Restore vanilla" before playing GTA Online.',
-          ]
-        : ["Some files are blocked and won't be imported."],
-  };
-}
-
 const copy = <T>(value: T): T => structuredClone(value);
 
 export const mockApi: Api & {
@@ -592,7 +511,17 @@ export const mockApi: Api & {
   async saveProfile(profile) {
     await wait();
     if (!profile.name.trim()) throw "Give the profile a name (up to 60 characters).";
-    const saved = { ...copy(profile), name: profile.name.trim(), updatedAt: now() };
+    const serverAddress = profile.serverAddress?.trim()
+      ? normalizeAddress(profile.serverAddress)
+      : null;
+    const saved: Profile = {
+      ...copy(profile),
+      name: profile.name.trim(),
+      serverAddress,
+      serverName: serverAddress ? profile.serverName : null,
+      serverIcon: serverAddress ? profile.serverIcon : null,
+      updatedAt: now(),
+    };
     const index = profiles.findIndex((p) => p.id === profile.id);
     if (index >= 0) profiles[index] = saved;
     else profiles.push({ ...saved, id: id(), createdAt: now() });
@@ -610,82 +539,47 @@ export const mockApi: Api & {
     await wait();
     const index = profiles.findIndex((p) => p.id === profileId);
     if (index >= 0) profiles.splice(index, 1);
-    servers.forEach((s) => {
-      if (s.profileId === profileId) s.profileId = null;
-    });
     if (activeProfileId === profileId) activeProfileId = null;
   },
 
-  async listServers() {
-    await wait();
-    return copy(servers);
-  },
-  async saveServer(server) {
-    await wait();
-    const address = server.address.trim().replace(/^https?:\/\//, "");
-    if (!/^(cfx\.re\/join\/\w+|[\w.-]+\.[\w.-]+(:\d+)?|\w{5,8})$/i.test(address)) {
-      throw "Use an IP:port (like 1.2.3.4:30120), a hostname, or a cfx.re/join code.";
+  async lookupServer(input) {
+    await wait(700);
+    const address = normalizeAddress(input);
+    if (/bad|offline/i.test(address)) {
+      throw `Couldn't reach ${address}. Check the address and that the server is online.`;
     }
-    const normalized = /^\w{5,8}$/.test(address) ? `cfx.re/join/${address}` : address;
-    const saved = { ...copy(server), address: normalized, name: server.name.trim() || normalized };
-    const index = servers.findIndex((s) => s.id === server.id);
-    if (index >= 0) servers[index] = saved;
-    else servers.push({ ...saved, id: id() });
-    return copy(index >= 0 ? saved : servers[servers.length - 1]);
+    const known = knownServers[address.toLowerCase()];
+    if (known) return copy({ address, ...known });
+    const words = ["Vinewood", "Paleto", "Sandy", "Vespucci", "Blaine", "Mirror Park"];
+    const pick = words[[...address].reduce((sum, c) => sum + c.charCodeAt(0), 0) % words.length];
+    return {
+      address,
+      name: `${pick} Roleplay`,
+      icon: logo("#a855f7", "#312e81", pick.slice(0, 2).toUpperCase()),
+      players: 34,
+      maxPlayers: 64,
+    };
   },
-  async deleteServer(serverId) {
-    await wait();
-    const index = servers.findIndex((s) => s.id === serverId);
-    if (index >= 0) servers.splice(index, 1);
+  async readLogoFile() {
+    await wait(120);
+    return logo("#f59e0b", "#7c2d12", "★");
   },
 
   async listPacks() {
     await wait();
     return copy(packs);
   },
-  async inspectPack(path, layout) {
-    await wait(350);
-    return proposalFor(path, layout);
-  },
-  async importPack(proposal) {
-    const files = proposal.files.filter((f) => f.include && f.kind === "deploy");
-    const total = files.reduce((sum, f) => sum + f.size, 0);
-    let done = 0;
-    for (const file of files) {
-      emit({ stage: "copying", done, total, message: `Copying ${file.source}` });
-      await wait(350);
-      done += file.size;
+  async importProfileFile(path, kind) {
+    const sourceName = path.split(/[\\/]/).pop() ?? path;
+    const size = 20_000_000 + (sourceName.length % 7) * 13_000_000;
+    for (let done = 0; done <= size; done += size / 4) {
+      emit({ stage: "copying", done, total: size, message: `Copying ${sourceName}` });
+      await wait(120);
     }
-    const pack: Pack = {
-      id: id(),
-      name: proposal.name,
-      category: proposal.category,
-      root: proposal.layout === "gtaAudio" ? "gtaInstall" : "fivemApp",
-      files: files.map((f) => ({ path: f.dest, size: f.size, hash: "x" })),
-      docs: proposal.files.filter((f) => f.include && f.kind === "doc").map((f) => f.dest),
-      totalSize: total,
-      sourceName: proposal.sourceName,
-      importedAt: now(),
-      notes: "",
-    };
+    const pack = profileFile(id(), kind, sourceName, size, 0);
+    pack.importedAt = now();
     packs.push(pack);
     return copy(pack);
-  },
-  async updatePack(packId, name, category, notes) {
-    await wait();
-    const pack = packs.find((p) => p.id === packId);
-    if (!pack) throw "That pack wasn't found";
-    Object.assign(pack, { name, category, notes });
-    return copy(pack);
-  },
-  async deletePack(packId) {
-    await wait();
-    if (deployed.some((d) => d.packId === packId)) {
-      throw "This pack is installed right now. Apply a profile without it (or restore vanilla) first.";
-    }
-    const index = packs.findIndex((p) => p.id === packId);
-    if (index >= 0) packs.splice(index, 1);
-    profiles.forEach((p) => (p.packs = p.packs.filter((x) => x !== packId)));
   },
 
   async planApply(profileId) {
@@ -745,10 +639,8 @@ export const mockApi: Api & {
   async launchFivem() {
     await wait(300);
   },
-  async connectServer(_address, serverId) {
+  async connectServer() {
     await wait(300);
-    const server = servers.find((s) => s.id === serverId);
-    if (server) server.lastPlayedAt = now();
   },
   async openFolder() {
     await wait(50);
@@ -758,9 +650,16 @@ export const mockApi: Api & {
     await wait(200);
     return "C:\\Users\\Player\\Downloads\\Crisp Gun Sounds v3";
   },
-  async pickPackFile() {
+  async pickProfileFiles(kind) {
     await wait(200);
-    return "C:\\Users\\Player\\Downloads\\Clean PvP Citizen.zip";
+    const downloads = "C:\\Users\\Player\\Downloads\\";
+    if (kind === "weaponSounds") return [`${downloads}Glock Sounds v2\\WEAPONS_PLAYER.rpf`];
+    if (kind === "residentSounds") return [`${downloads}Glock Sounds v2\\RESIDENT.rpf`];
+    return [`${downloads}clear_water.rpf`, `${downloads}tracer_rounds.zip`];
+  },
+  async pickImage() {
+    await wait(200);
+    return "C:\\Users\\Player\\Pictures\\server-logo.png";
   },
 
   async onProgress(listener) {

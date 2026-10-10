@@ -16,6 +16,9 @@ pub enum Error {
     Invalid(String),
     #[error("{0} wasn't found")]
     NotFound(String),
+    /// A server lookup failed. The message says why, for the player.
+    #[error("{0}")]
+    Network(String),
     #[error("Close {} first, then try again", .0.join(", "))]
     GameRunning(Vec<String>),
     #[error("Couldn't read the archive: {0}")]

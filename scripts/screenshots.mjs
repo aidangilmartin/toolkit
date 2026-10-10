@@ -64,41 +64,47 @@ try {
   await open("?drift=1");
   await shot("play");
 
-  await open();
-  await page.getByRole("button", { name: "Apply", exact: true }).nth(0).click();
-  await page.getByRole("dialog").getByText("Pack files").waitFor();
+  await page.getByRole("button", { name: "Play · Los Santos Life RP" }).click();
+  await page.getByRole("dialog").getByText("Sounds & mods").waitFor();
   await shot("apply-preview");
   await page.keyboard.press("Escape");
 
   await page
-    .getByRole("button", { name: /^City RP – Ultra/ })
+    .getByRole("button", { name: /^Arena – Max FPS/ })
     .first()
     .click();
   await page.getByRole("tab", { name: /Graphics/ }).waitFor();
   await shot("profile-graphics");
-  await page.getByRole("tab", { name: /Packs/ }).click();
-  await shot("profile-packs");
+  await page.getByRole("tab", { name: /Sounds & mods/ }).click();
+  await shot("profile-files");
   await page.getByRole("tab", { name: /In-game/ }).click();
   await shot("profile-ingame");
   await page.getByRole("button", { name: "Back", exact: true }).click();
-
-  await nav("Packs");
-  await shot("packs");
-  await page
-    .getByRole("button", { name: /Import folder/ })
-    .first()
-    .click();
-  await page.getByRole("dialog").getByText("Install into").waitFor();
-  await shot("import");
-  await page.keyboard.press("Escape");
 
   await nav("Backups");
   await shot("backups");
   await nav("Settings");
   await shot("settings");
 
+  // A new profile: look the server up, then upload sounds and mods.
+  await open();
+  await page.getByRole("button", { name: "New profile" }).first().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Server address").fill("play.vinewood-rp.com:30120");
+  await dialog.getByRole("button", { name: "Look up" }).click();
+  await dialog.getByText(/^Found /).waitFor();
+  await shot("new-profile");
+  await dialog.getByRole("button", { name: "Upload" }).first().click();
+  await dialog.getByText("WEAPONS_PLAYER.rpf ·").waitFor();
+  await dialog.getByRole("button", { name: "Add mods" }).click();
+  await dialog.getByText("tracer_rounds", { exact: true }).waitFor();
+  await shot("new-profile-files");
+  await dialog.getByRole("button", { name: "Create profile" }).click();
+  await page.getByText(/is ready$/).waitFor();
+  await shot("play-new-profile");
+
   await open("?running=1");
-  await page.getByRole("button", { name: "Apply", exact: true }).nth(1).click();
+  await page.getByRole("button", { name: "Play · Los Santos Life RP" }).click();
   await page.getByText("Close the game first").waitFor();
   await shot("game-running");
 

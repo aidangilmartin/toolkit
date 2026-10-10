@@ -19,5 +19,15 @@ applyToGta: boolean,
 fivemCfg: { [key in string]: string }, 
 /**
  * Pack ids in priority order (a later pack wins when two packs ship the same file).
+ * Files uploaded in the profile (sounds, mods) are packs too, marked with
+ * [`Pack::profile_file`].
  */
-packs: Array<string>, createdAt: string, updatedAt: string, };
+packs: Array<string>, 
+/**
+ * Server to join after applying: `ip:port`, a hostname or `cfx.re/join/<code>`.
+ */
+serverAddress: string | null, serverName: string | null, 
+/**
+ * The server's logo as a `data:image/…;base64,` URL.
+ */
+serverIcon: string | null, createdAt: string, updatedAt: string, };

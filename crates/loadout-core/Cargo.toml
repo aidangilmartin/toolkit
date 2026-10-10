@@ -21,6 +21,8 @@ sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 uuid = { version = "1", features = ["v4"] }
 walkdir = "2.5"
 zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs", "deflate64"] }
+ureq = "3"
+base64 = "0.23"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"

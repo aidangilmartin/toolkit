@@ -585,6 +585,7 @@ pub fn import(
             source_name: proposal.source_name.clone(),
             imported_at: fsutil::now_rfc3339(),
             notes: String::new(),
+            profile_file: None,
         };
         crate::store::write_json(&staging.join("pack.json"), &pack)?;
         Ok(pack)

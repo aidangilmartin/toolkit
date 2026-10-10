@@ -9,7 +9,7 @@ use std::time::Duration;
 use loadout_core::launch;
 use loadout_core::model::{
     AfterLaunch, AppConfig, AppStatus, ApplyPlan, ApplyResult, CapturedSettings, FolderTarget,
-    ImportProposal, Pack, PackCategory, PackLayout, Profile, Progress, Server, Snapshot,
+    Pack, Profile, ProfileFileKind, Progress, ServerInfo, Snapshot,
 };
 use loadout_core::schema::GraphicsSchema;
 use loadout_core::Loadout;
@@ -97,7 +97,7 @@ pub async fn capture_current(state: State<'_, AppState>) -> CmdResult<CapturedSe
     run(&state, |core| core.capture()).await
 }
 
-// ---- Profiles & servers ------------------------------------------------------
+// ---- Profiles ------------------------------------------------------
 
 #[tauri::command]
 pub async fn list_profiles(state: State<'_, AppState>) -> CmdResult<Vec<Profile>> {
@@ -120,18 +120,16 @@ pub async fn delete_profile(state: State<'_, AppState>, id: String) -> CmdResult
 }
 
 #[tauri::command]
-pub async fn list_servers(state: State<'_, AppState>) -> CmdResult<Vec<Server>> {
-    run(&state, |core| core.servers()).await
+pub async fn lookup_server(state: State<'_, AppState>, address: String) -> CmdResult<ServerInfo> {
+    run(&state, move |core| core.lookup_server(&address)).await
 }
 
 #[tauri::command]
-pub async fn save_server(state: State<'_, AppState>, server: Server) -> CmdResult<Server> {
-    run(&state, move |core| core.save_server(server)).await
-}
-
-#[tauri::command]
-pub async fn delete_server(state: State<'_, AppState>, id: String) -> CmdResult<()> {
-    run(&state, move |core| core.delete_server(&id)).await
+pub async fn read_logo_file(state: State<'_, AppState>, path: String) -> CmdResult<String> {
+    run(&state, move |core| {
+        core.read_logo_file(&PathBuf::from(path))
+    })
+    .await
 }
 
 // ---- Packs -------------------------------------------------------------------
@@ -142,44 +140,17 @@ pub async fn list_packs(state: State<'_, AppState>) -> CmdResult<Vec<Pack>> {
 }
 
 #[tauri::command]
-pub async fn inspect_pack(
-    state: State<'_, AppState>,
-    path: String,
-    layout: Option<PackLayout>,
-) -> CmdResult<ImportProposal> {
-    run(&state, move |core| {
-        core.inspect_pack(&PathBuf::from(path), layout)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn import_pack(
+pub async fn import_profile_file(
     app: AppHandle,
     state: State<'_, AppState>,
-    proposal: ImportProposal,
+    path: String,
+    kind: ProfileFileKind,
 ) -> CmdResult<Pack> {
     let mut emit = progress_emitter(&app);
-    run(&state, move |core| core.import_pack(&proposal, &mut emit)).await
-}
-
-#[tauri::command]
-pub async fn update_pack(
-    state: State<'_, AppState>,
-    id: String,
-    name: String,
-    category: PackCategory,
-    notes: String,
-) -> CmdResult<Pack> {
     run(&state, move |core| {
-        core.update_pack(&id, &name, category, &notes)
+        core.import_profile_file(&PathBuf::from(path), kind, &mut emit)
     })
     .await
-}
-
-#[tauri::command]
-pub async fn delete_pack(state: State<'_, AppState>, id: String) -> CmdResult<()> {
-    run(&state, move |core| core.delete_pack(&id)).await
 }
 
 // ---- Apply ---------------------------------------------------------------------
@@ -274,15 +245,11 @@ pub async fn connect_server(
     app: AppHandle,
     state: State<'_, AppState>,
     address: String,
-    server_id: Option<String>,
 ) -> CmdResult<()> {
     let address = launch::normalize_server_address(&address)?;
     app.opener()
         .open_url(launch::connect_url(&address), None::<&str>)
         .map_err(|e| format!("Couldn't open FiveM ({e}). Is FiveM installed?"))?;
-    if let Some(id) = server_id {
-        run(&state, move |core| core.mark_played(&id)).await?;
-    }
     after_launch(&app, &state.core);
     Ok(())
 }

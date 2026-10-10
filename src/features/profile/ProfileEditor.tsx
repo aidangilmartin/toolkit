@@ -7,14 +7,16 @@ import type { CapturedSettings, Profile } from "../../api/types";
 import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/form";
-import { Badge, EmptyState } from "../../components/ui/misc";
+import { Badge, Card, EmptyState } from "../../components/ui/misc";
 import { TabPanel, Tabs } from "../../components/ui/overlay";
-import { useApp } from "../../store/app";
+import { serverLabel } from "../../lib/profile";
+import { useApp, type AfterApply } from "../../store/app";
 import { ColorPicker } from "../home/NewProfileDialog";
 import { GraphicsTab } from "./GraphicsTab";
 import { IngameTab } from "./IngameTab";
-import { PacksTab } from "./PacksTab";
+import { FilesSection } from "./FilesSection";
 import { RawTab } from "./RawTab";
+import { ServerSection } from "./ServerSection";
 
 export interface TabProps {
   draft: Profile;
@@ -84,6 +86,7 @@ export function ProfileEditor({ profileId }: { profileId: string }) {
   };
 
   const graphicsCount = Object.keys(draft.graphics).length;
+  const serverName = serverLabel(draft);
   const rawCount = Object.keys(draft.graphics).filter(
     (key) => !schema.settings.some((s) => s.key === key),
   ).length;
@@ -127,7 +130,12 @@ export function ProfileEditor({ profileId }: { profileId: string }) {
               icon={<Play className="size-3.5 fill-current" />}
               onClick={async () => {
                 if (dirty && !(await save())) return;
-                requestApply(draft.id, { kind: "launch" });
+                // Read the saved profile: saving normalises the address.
+                const saved = useApp.getState().profiles.find((p) => p.id === draft.id);
+                const then: AfterApply = saved?.serverAddress
+                  ? { kind: "connect", address: saved.serverAddress }
+                  : { kind: "launch" };
+                requestApply(draft.id, then);
               }}
             >
               {dirty ? "Save & play" : "Play"}
@@ -136,21 +144,36 @@ export function ProfileEditor({ profileId }: { profileId: string }) {
         }
       />
       <div className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-8 py-6">
-        <div className="mb-6 grid grid-cols-[auto_1fr] gap-6">
-          <div>
-            <span className="mb-1.5 block text-xs font-medium text-muted">Colour</span>
-            <ColorPicker value={draft.color} onChange={(c) => update((d) => void (d.color = c))} />
-          </div>
-          <label>
-            <span className="mb-1.5 block text-xs font-medium text-muted">Notes</span>
-            <Textarea
-              value={draft.notes}
-              onChange={(e) => update((d) => void (d.notes = e.target.value))}
-              placeholder="What's this profile for?"
-              className="min-h-9 resize-none py-1.5"
-              rows={1}
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+          <Card className="p-4">
+            <p className="mb-3 text-xs font-medium text-muted">
+              Server{serverName ? ` · Play joins ${serverName}` : " · Play only starts FiveM"}
+            </p>
+            <ServerSection
+              value={draft}
+              color={draft.color}
+              onChange={(patch) => update((d) => void Object.assign(d, patch))}
             />
-          </label>
+          </Card>
+          <div className="space-y-4">
+            <div>
+              <span className="mb-1.5 block text-xs font-medium text-muted">Colour</span>
+              <ColorPicker
+                value={draft.color}
+                onChange={(c) => update((d) => void (d.color = c))}
+              />
+            </div>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-muted">Notes</span>
+              <Textarea
+                value={draft.notes}
+                onChange={(e) => update((d) => void (d.notes = e.target.value))}
+                placeholder="What's this profile for?"
+                className="min-h-9 resize-none py-1.5"
+                rows={2}
+              />
+            </label>
+          </div>
         </div>
         <Tabs
           value={tab}
@@ -161,7 +184,11 @@ export function ProfileEditor({ profileId }: { profileId: string }) {
               label: "Graphics",
               badge: <Badge>{graphicsCount - rawCount}</Badge>,
             },
-            { value: "packs", label: "Packs", badge: <Badge>{draft.packs.length}</Badge> },
+            {
+              value: "files",
+              label: "Sounds & mods",
+              badge: <Badge>{draft.packs.length}</Badge>,
+            },
             {
               value: "ingame",
               label: "In-game settings",
@@ -177,8 +204,11 @@ export function ProfileEditor({ profileId }: { profileId: string }) {
           <TabPanel value="graphics" className="pt-5 outline-none">
             <GraphicsTab draft={draft} update={update} captured={captured} />
           </TabPanel>
-          <TabPanel value="packs" className="pt-5 outline-none">
-            <PacksTab draft={draft} update={update} captured={captured} />
+          <TabPanel value="files" className="pt-5 outline-none">
+            <FilesSection
+              packIds={draft.packs}
+              onChange={(ids) => update((d) => void (d.packs = ids))}
+            />
           </TabPanel>
           <TabPanel value="ingame" className="pt-5 outline-none">
             <IngameTab draft={draft} update={update} captured={captured} />

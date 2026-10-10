@@ -2,9 +2,15 @@
 import type { InstallRoot } from "./InstallRoot";
 import type { PackCategory } from "./PackCategory";
 import type { PackFile } from "./PackFile";
+import type { ProfileFileKind } from "./ProfileFileKind";
 
 export type Pack = { id: string, name: string, category: PackCategory, root: InstallRoot, files: Array<PackFile>, 
 /**
  * Readmes/screenshots kept with the pack but never installed.
  */
-docs: Array<string>, totalSize: number, sourceName: string, importedAt: string, notes: string, };
+docs: Array<string>, totalSize: number, sourceName: string, importedAt: string, notes: string, 
+/**
+ * Set for files uploaded in a profile. These packs belong to the profiles that
+ * list them and are deleted once none do.
+ */
+profileFile: ProfileFileKind | null, };

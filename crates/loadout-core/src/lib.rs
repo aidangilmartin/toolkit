@@ -13,6 +13,7 @@ pub mod packs;
 pub mod paths;
 pub mod process;
 pub mod schema;
+pub mod servers;
 pub mod settings_xml;
 pub mod store;
 

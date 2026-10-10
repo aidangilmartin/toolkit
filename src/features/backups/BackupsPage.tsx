@@ -40,9 +40,9 @@ export function BackupsPage() {
           <div className="min-w-0 flex-1">
             <p className="font-medium">Restore vanilla</p>
             <p className="mt-0.5 text-sm text-muted">
-              Removes every pack file Loadout installed and puts the original game files back. Do
-              this before playing GTA Online if a profile changed the GTA V folder. Your settings
-              files are left as they are; restore a backup below for those.
+              Removes every sound and mod file Loadout installed and puts the original game files
+              back. Do this before playing GTA Online if a profile changed the GTA V folder. Your
+              settings files are left as they are; restore a backup below for those.
             </p>
           </div>
           <Button
@@ -76,7 +76,7 @@ export function BackupsPage() {
                     {file.path}
                   </span>
                   <span className="truncate text-muted">
-                    {packs.find((p) => p.id === file.packId)?.name ?? "Deleted pack"}
+                    {packs.find((p) => p.id === file.packId)?.name ?? "Deleted file"}
                   </span>
                   {file.original ? (
                     <Badge tone="accent">original backed up</Badge>
@@ -155,7 +155,7 @@ function SnapshotRow({ snapshot }: { snapshot: Snapshot }) {
         open={restoring}
         onOpenChange={setRestoring}
         title="Restore these settings?"
-        description={`${snapshot.files.map((f) => fileLabel[f.target]).join(", ")} go back to how they were ${timeAgo(snapshot.createdAt)}. Your current files are backed up first. Packs aren't touched.`}
+        description={`${snapshot.files.map((f) => fileLabel[f.target]).join(", ")} go back to how they were ${timeAgo(snapshot.createdAt)}. Your current files are backed up first. Sounds and mods aren't touched.`}
         confirmLabel="Restore"
         onConfirm={async () => {
           try {

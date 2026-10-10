@@ -2,26 +2,13 @@ import { toast } from "sonner";
 import { create } from "zustand";
 
 import { api, errorMessage } from "../api";
-import type {
-  AppConfig,
-  AppStatus,
-  GraphicsSchema,
-  Pack,
-  Profile,
-  Server,
-  Snapshot,
-} from "../api/types";
+import type { AppConfig, AppStatus, GraphicsSchema, Pack, Profile, Snapshot } from "../api/types";
 
 export type View =
-  | { name: "home" }
-  | { name: "profile"; id: string }
-  | { name: "packs" }
-  | { name: "backups" }
-  | { name: "settings" };
+  { name: "home" } | { name: "profile"; id: string } | { name: "backups" } | { name: "settings" };
 
 /** What to do once a profile has been applied. */
-export type AfterApply =
-  { kind: "launch" } | { kind: "connect"; address: string; serverId: string | null } | null;
+export type AfterApply = { kind: "launch" } | { kind: "connect"; address: string } | null;
 
 export interface ApplyRequest {
   /** `null` restores vanilla. */
@@ -30,7 +17,7 @@ export interface ApplyRequest {
   key: number;
 }
 
-type Part = "status" | "config" | "profiles" | "servers" | "packs" | "snapshots";
+type Part = "status" | "config" | "profiles" | "packs" | "snapshots";
 
 interface AppStore {
   loaded: boolean;
@@ -39,7 +26,6 @@ interface AppStore {
   status: AppStatus | null;
   schema: GraphicsSchema | null;
   profiles: Profile[];
-  servers: Server[];
   packs: Pack[];
   snapshots: Snapshot[];
   running: string[];
@@ -68,12 +54,11 @@ const loaders: Record<Part, () => Promise<Partial<AppStore>>> = {
   },
   config: async () => ({ config: await api.getConfig() }),
   profiles: async () => ({ profiles: await api.listProfiles() }),
-  servers: async () => ({ servers: await api.listServers() }),
   packs: async () => ({ packs: await api.listPacks() }),
   snapshots: async () => ({ snapshots: await api.listSnapshots() }),
 };
 
-const ALL: Part[] = ["status", "config", "profiles", "servers", "packs", "snapshots"];
+const ALL: Part[] = ["status", "config", "profiles", "packs", "snapshots"];
 
 export const useApp = create<AppStore>((set, get) => ({
   loaded: false,
@@ -82,7 +67,6 @@ export const useApp = create<AppStore>((set, get) => ({
   status: null,
   schema: null,
   profiles: [],
-  servers: [],
   packs: [],
   snapshots: [],
   running: [],

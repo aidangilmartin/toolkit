@@ -85,7 +85,7 @@ export function Notices() {
       {status.fileDrift.length > 0 && (
         <Banner
           tone="warn"
-          title={`${plural(status.fileDrift.length, "pack file")} changed by something else`}
+          title={`${plural(status.fileDrift.length, "installed file")} changed by something else`}
           actions={
             active && (
               <Button size="sm" variant="primary" onClick={() => requestApply(active.id)}>
@@ -95,7 +95,7 @@ export function Notices() {
           }
         >
           Usually a FiveM update or a game file check put the original back. Re-applying installs
-          your pack again and keeps the new file as the original.
+          your file again and keeps the new file as the original.
         </Banner>
       )}
     </div>

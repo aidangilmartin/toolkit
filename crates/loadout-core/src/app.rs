@@ -15,13 +15,14 @@ use crate::fsutil;
 use crate::launch;
 use crate::model::{
     AppConfig, AppStatus, ApplyPlan, ApplyResult, CapturedSettings, DeployState, ImportProposal,
-    Pack, PackCategory, PackLayout, Profile, Progress, Server, SettingsDrift, SettingsTarget,
-    Snapshot,
+    Pack, PackCategory, PackLayout, Profile, ProfileFileKind, Progress, ProposedFileKind,
+    ServerInfo, SettingsDrift, SettingsTarget, Snapshot,
 };
 use crate::packs;
 use crate::paths::{self, RegistryProbe, ResolvedPaths, SystemDirs};
 use crate::process::ProcessProbe;
 use crate::schema::{self, GraphicsSchema};
+use crate::servers;
 use crate::settings_xml::SettingsXml;
 use crate::store::{self, Store};
 
@@ -53,14 +54,21 @@ impl Loadout {
         let store = Store::new(data_dir)?;
         packs::cleanup_staging(&store.packs_dir());
         let notice = deploy::recover(&store)?;
-        Ok(Self {
+        if let Err(err) = migrate_servers(&store) {
+            log::error!("couldn't move saved servers into profiles: {err}");
+        }
+        let app = Self {
             store,
             sys,
             registry,
             processes,
             op_lock: Mutex::new(()),
             notice: Mutex::new(notice),
-        })
+        };
+        if let Err(err) = app.gc_profile_packs() {
+            log::error!("couldn't clean up unused profile files: {err}");
+        }
+        Ok(app)
     }
 
     pub fn data_dir(&self) -> &Path {
@@ -229,6 +237,27 @@ impl Loadout {
             }
         }
         profile.packs = seen;
+
+        profile.server_address = match profile.server_address.as_deref().map(str::trim) {
+            None | Some("") => None,
+            Some(address) => {
+                Some(launch::normalize_server_address(address).map_err(Error::Invalid)?)
+            }
+        };
+        profile.server_name = profile.server_name.as_deref().and_then(servers::clean_name);
+        if profile
+            .server_icon
+            .as_deref()
+            .is_some_and(|icon| !servers::is_valid_icon(icon))
+        {
+            return Err(Error::invalid(
+                "The server logo must be a PNG, JPEG or WebP image under 512 KB.",
+            ));
+        }
+        if profile.server_address.is_none() {
+            profile.server_name = None;
+            profile.server_icon = None;
+        }
         Ok(())
     }
 
@@ -281,14 +310,6 @@ impl Loadout {
             return Err(Error::NotFound("That profile".into()));
         }
         self.store.save(store::PROFILES, &profiles)?;
-        let mut servers = self.servers()?;
-        for server in servers
-            .iter_mut()
-            .filter(|s| s.profile_id.as_deref() == Some(id))
-        {
-            server.profile_id = None;
-        }
-        self.store.save(store::SERVERS, &servers)?;
         let mut state = self.state()?;
         if state.active_profile_id.as_deref() == Some(id) {
             state.active_profile_id = None;
@@ -299,58 +320,14 @@ impl Loadout {
 
     // ---- Servers ------------------------------------------------------------
 
-    pub fn servers(&self) -> Result<Vec<Server>> {
-        self.store.load(store::SERVERS)
+    /// Name, logo and player count for a server address (network, a few seconds at most).
+    pub fn lookup_server(&self, address: &str) -> Result<ServerInfo> {
+        servers::lookup(address)
     }
 
-    pub fn save_server(&self, mut server: Server) -> Result<Server> {
-        server.name = server.name.trim().to_string();
-        server.address =
-            launch::normalize_server_address(&server.address).map_err(Error::Invalid)?;
-        if server.name.is_empty() {
-            server.name = server.address.clone();
-        }
-        if server.name.chars().count() > 60 {
-            return Err(Error::invalid("Server names can be up to 60 characters."));
-        }
-        if let Some(profile_id) = &server.profile_id {
-            if !self.profiles()?.iter().any(|p| &p.id == profile_id) {
-                return Err(Error::invalid("That profile no longer exists."));
-            }
-        }
-        let _guard = lock(&self.op_lock);
-        let mut servers = self.servers()?;
-        match servers
-            .iter_mut()
-            .find(|s| !server.id.is_empty() && s.id == server.id)
-        {
-            Some(existing) => {
-                server.last_played_at = existing.last_played_at.clone();
-                *existing = server.clone();
-            }
-            None => {
-                server.id = fsutil::new_id();
-                servers.push(server.clone());
-            }
-        }
-        self.store.save(store::SERVERS, &servers)?;
-        Ok(server)
-    }
-
-    pub fn delete_server(&self, id: &str) -> Result<()> {
-        let _guard = lock(&self.op_lock);
-        let mut servers = self.servers()?;
-        servers.retain(|s| s.id != id);
-        self.store.save(store::SERVERS, &servers)
-    }
-
-    pub fn mark_played(&self, id: &str) -> Result<()> {
-        let _guard = lock(&self.op_lock);
-        let mut servers = self.servers()?;
-        if let Some(server) = servers.iter_mut().find(|s| s.id == id) {
-            server.last_played_at = Some(fsutil::now_rfc3339());
-        }
-        self.store.save(store::SERVERS, &servers)
+    /// A logo picked by hand, as a `data:` URL for [`Profile::server_icon`].
+    pub fn read_logo_file(&self, path: &Path) -> Result<String> {
+        servers::read_logo_file(path)
     }
 
     // ---- Packs --------------------------------------------------------------
@@ -376,32 +353,6 @@ impl Loadout {
         packs::import(&self.store.packs_dir(), proposal, progress)
     }
 
-    pub fn update_pack(
-        &self,
-        id: &str,
-        name: &str,
-        category: PackCategory,
-        notes: &str,
-    ) -> Result<Pack> {
-        let name = name.trim();
-        if name.is_empty() || name.chars().count() > 80 {
-            return Err(Error::invalid(
-                "Give the pack a name (up to 80 characters).",
-            ));
-        }
-        let _guard = lock(&self.op_lock);
-        let mut pack = self
-            .packs()
-            .into_iter()
-            .find(|p| p.id == id)
-            .ok_or_else(|| Error::NotFound("That pack".into()))?;
-        pack.name = name.to_string();
-        pack.category = category;
-        pack.notes = notes.chars().take(2000).collect();
-        packs::save(&self.store.packs_dir(), &pack)?;
-        Ok(pack)
-    }
-
     pub fn delete_pack(&self, id: &str) -> Result<()> {
         let _guard = lock(&self.op_lock);
         if self.state()?.files.iter().any(|f| f.pack_id == id) {
@@ -419,6 +370,86 @@ impl Loadout {
 
     pub fn pack_dir(&self, id: &str) -> PathBuf {
         self.store.packs_dir().join(id)
+    }
+
+    /// Copy a file uploaded in a profile (weapon/resident sounds or a mod) into
+    /// Loadout's data folder. The caller adds the returned pack's id to the
+    /// profile's `packs` and saves the profile.
+    pub fn import_profile_file(
+        &self,
+        source: &Path,
+        kind: ProfileFileKind,
+        progress: &mut dyn FnMut(Progress),
+    ) -> Result<Pack> {
+        if !source.is_file() {
+            return Err(Error::NotFound(source.display().to_string()));
+        }
+        let ext = source
+            .extension()
+            .map(|e| e.to_string_lossy().to_ascii_lowercase())
+            .unwrap_or_default();
+        let (layout, category) = match kind {
+            ProfileFileKind::Mod if ext == "rpf" || ext == "zip" => {
+                (PackLayout::ModsFolder, PackCategory::Mods)
+            }
+            ProfileFileKind::Mod => {
+                return Err(Error::invalid(
+                    "Mods for the mods folder are .rpf files (or a .zip of them).",
+                ))
+            }
+            _ if ext == "rpf" => (PackLayout::GtaAudio, PackCategory::SoundPack),
+            _ => return Err(Error::invalid("Pick an .rpf file.")),
+        };
+        let mut proposal = packs::inspect(source, Some(layout))?;
+        if let Some(dest) = kind.sound_dest() {
+            // Whatever the download was called, it replaces this one game file.
+            let file = proposal
+                .files
+                .iter_mut()
+                .find(|f| f.kind == ProposedFileKind::Deploy)
+                .ok_or_else(|| Error::invalid("Pick an .rpf file."))?;
+            file.dest = dest.to_string();
+            file.include = true;
+        }
+        let stem = source
+            .file_stem()
+            .map(|s| s.to_string_lossy().trim().to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "Mod".into());
+        proposal.name = stem.chars().take(80).collect();
+        proposal.category = category;
+
+        let _guard = lock(&self.op_lock);
+        let packs_dir = self.store.packs_dir();
+        let mut pack = packs::import(&packs_dir, &proposal, progress)?;
+        pack.profile_file = Some(kind);
+        if let Err(err) = packs::save(&packs_dir, &pack) {
+            let _ = packs::delete(&packs_dir, &pack.id);
+            return Err(err);
+        }
+        Ok(pack)
+    }
+
+    /// Delete uploaded profile files that no profile uses any more (replaced,
+    /// removed, or uploaded for a profile that was never saved). Files that are
+    /// installed right now are kept until another apply removes them. Packs from
+    /// the old library are never deleted here. Returns how many were deleted.
+    pub fn gc_profile_packs(&self) -> Result<usize> {
+        let _guard = lock(&self.op_lock);
+        let profiles = self.profiles()?;
+        let state = self.state()?;
+        let packs_dir = self.store.packs_dir();
+        let mut deleted = 0;
+        for pack in packs::load_all(&packs_dir) {
+            let unused = pack.profile_file.is_some()
+                && !profiles.iter().any(|p| p.packs.contains(&pack.id))
+                && !state.files.iter().any(|f| f.pack_id == pack.id);
+            if unused {
+                packs::delete(&packs_dir, &pack.id)?;
+                deleted += 1;
+            }
+        }
+        Ok(deleted)
     }
 
     // ---- Apply ------------------------------------------------------------
@@ -600,6 +631,45 @@ impl Loadout {
         config.setup_complete = true;
         self.save_config(config)
     }
+}
+
+/// v0.1.0 kept servers in their own list, each linked to a profile. Servers now
+/// live on the profile, so copy each address onto its profile once and keep the
+/// old file as `servers.migrated.json`.
+fn migrate_servers(store: &Store) -> Result<()> {
+    #[derive(Default, serde::Deserialize)]
+    #[serde(rename_all = "camelCase", default)]
+    struct LegacyServer {
+        name: String,
+        address: String,
+        profile_id: Option<String>,
+    }
+
+    let path = store.path(store::LEGACY_SERVERS);
+    if !path.is_file() {
+        return Ok(());
+    }
+    let servers: Vec<LegacyServer> = store.load(store::LEGACY_SERVERS)?;
+    let mut profiles: Vec<Profile> = store.load(store::PROFILES)?;
+    let mut changed = false;
+    for server in servers {
+        let Some(profile) = profiles.iter_mut().find(|p| {
+            server.profile_id.as_deref() == Some(p.id.as_str()) && p.server_address.is_none()
+        }) else {
+            continue;
+        };
+        let Ok(address) = launch::normalize_server_address(&server.address) else {
+            continue;
+        };
+        profile.server_name = servers::clean_name(&server.name).filter(|n| *n != address);
+        profile.server_address = Some(address);
+        changed = true;
+    }
+    if changed {
+        store.save(store::PROFILES, &profiles)?;
+    }
+    let done = store.path("servers.migrated.json");
+    fs::rename(&path, &done).ctx_path("rename", &path)
 }
 
 /// Compare the values a profile applied with what's in the files now.

@@ -8,25 +8,28 @@ import {
   emptyProfile,
   graphicsSummary,
   matchingPreset,
+  filesSummary,
   normalizeValue,
-  packConflicts,
+  profileFiles,
+  setSoundFile,
 } from "./profile";
 
 const schema = schemaJson as unknown as GraphicsSchema;
 const def = (key: string) => schema.settings.find((s) => s.key === key) as SettingDef;
 
-function pack(id: string, name: string, paths: string[], root: Pack["root"] = "fivemApp"): Pack {
+function pack(id: string, profileFile: Pack["profileFile"]): Pack {
   return {
     id,
-    name,
-    category: "citizen",
-    root,
-    files: paths.map((path) => ({ path, size: 1, hash: "x" })),
+    name: id,
+    category: profileFile === "mod" ? "mods" : "soundPack",
+    root: profileFile === "mod" ? "fivemApp" : "gtaInstall",
+    files: [{ path: `${id}.rpf`, size: 1, hash: "x" }],
     docs: [],
-    totalSize: paths.length,
-    sourceName: name,
+    totalSize: 1,
+    sourceName: `${id}.rpf`,
     importedAt: "",
     notes: "",
+    profileFile,
   };
 }
 
@@ -71,13 +74,37 @@ describe("values", () => {
   });
 });
 
-describe("pack conflicts", () => {
-  it("flags files shipped by two packs on the same root, case-insensitively", () => {
-    const a = pack("a", "Pack A", ["citizen/common/data/visualsettings.dat", "citizen/x.xml"]);
-    const b = pack("b", "Pack B", ["CITIZEN/common/data/VisualSettings.dat"]);
-    const c = pack("c", "Pack C", ["citizen/x.xml"], "gtaInstall");
-    const conflicts = packConflicts([a, b, c]);
-    expect(conflicts).toHaveLength(1);
-    expect(conflicts[0].packs).toEqual(["Pack A", "Pack B"]);
+describe("profile files", () => {
+  const packs = [
+    pack("w1", "weaponSounds"),
+    pack("w2", "weaponSounds"),
+    pack("r1", "residentSounds"),
+    pack("m1", "mod"),
+    pack("m2", "mod"),
+    pack("old", null),
+  ];
+
+  it("sorts a profile's packs into its slots", () => {
+    const files = profileFiles(["old", "w1", "m1", "r1", "m2", "gone"], packs);
+    expect(files.weaponSounds?.id).toBe("w1");
+    expect(files.residentSounds?.id).toBe("r1");
+    expect(files.mods.map((p) => p.id)).toEqual(["m1", "m2"]);
+    expect(files.older.map((p) => p.id)).toEqual(["old"]);
+  });
+
+  it("replaces and clears a sound slot, keeping everything else in order", () => {
+    expect(setSoundFile(["w1", "old", "m1"], packs, "weaponSounds", "w2")).toEqual([
+      "old",
+      "m1",
+      "w2",
+    ]);
+    expect(setSoundFile(["w1", "r1"], packs, "residentSounds", null)).toEqual(["w1"]);
+  });
+
+  it("summarises what a profile installs", () => {
+    const profile = (ids: string[]) => emptyProfile({ packs: ids });
+    expect(filesSummary(profile(["w1", "m1", "m2"]), packs)).toBe("Weapon sounds · 2 mods");
+    expect(filesSummary(profile(["r1", "old"]), packs)).toBe("Resident sounds · 1 pack");
+    expect(filesSummary(profile([]), packs)).toBe("Vanilla sounds · no mods");
   });
 });

@@ -64,7 +64,7 @@ export function SettingsPage() {
           <Card className="flex items-center gap-4 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">
-                Show what will change before installing pack files
+                Show what will change before installing sounds and mods
               </p>
               <p className="text-xs text-muted">
                 Settings-only changes always apply straight away. Restoring vanilla always asks.

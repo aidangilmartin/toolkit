@@ -1,36 +1,38 @@
 # Loadout
 
-**One-click profile switcher for GTA V and FiveM.** Keep an "Arena – Max FPS" setup with your
-gun sound pack and a "City RP – Ultra" setup with ReShade, and switch between them before joining
-a server. No more editing `settings.xml` by hand or dragging `.rpf` files around.
+**One-click profile switcher for GTA V and FiveM.** Keep an "Arena – Max FPS" profile with your
+own gun sounds that joins your PvP server, and a "City RP – Ultra" profile with your RP server's
+mods. Press Play and Loadout switches everything over, then joins the server. No more editing
+`settings.xml` by hand or dragging `.rpf` files around.
 
 ![The Play screen](docs/screenshots/play.png)
 
 ## What it does
 
 - **Profiles**: graphics and display settings, GTA's in-game settings (FOV, brightness, HUD,
-  volumes…) and a set of packs, all applied together.
-- **Quick Play**: save your servers once, each with its profile. ▶ applies the profile and joins
-  the server through FiveM's own `fivem://connect/…` link.
-- **Pack library**: import a sound pack, citizen pack, ReShade preset or `.rpf` mod from a
-  folder, `.zip` or `.rpf`. Loadout works out where its files go and keeps a copy, so each profile
-  can switch it on or off.
+  volumes…), your own sounds and mods, and the server to join, all switched together.
+- **Server and logo**: enter the server's `IP:port` or `cfx.re/join` code. Loadout looks up its
+  name and logo and shows them on the profile. **Play** applies the profile, then joins the
+  server through FiveM's own `fivem://connect/…` link.
+- **Your own sounds and mods**: upload a `WEAPONS_PLAYER.rpf` and a `RESIDENT.rpf` (they replace
+  the game's in `GTA V\x64\audio\sfx`) and any `.rpf` mods for FiveM's `mods` folder, per
+  profile. Loadout keeps a copy, so only the profile you're playing has its files installed.
 - **Safe by design**:
   - Every file Loadout replaces is backed up first.
   - Applying is a transaction: if anything fails, or the app crashes halfway, everything is
     put back.
-  - **Restore vanilla** removes every pack file and restores the originals.
+  - **Restore vanilla** removes every sound and mod file and restores the originals.
   - Settings backups are taken before every apply. The first-run backup is kept forever.
 - **Notices changes**: if you tweak settings in-game, Loadout offers to save them into the
-  profile. If a FiveM update overwrote a pack file, it offers to re-apply.
+  profile. If a FiveM update overwrote one of your files, it offers to re-apply.
 - **Won't touch a running game**: FiveM reads its settings at start-up and rewrites them on exit,
   so Loadout waits for the game to close, or closes it for you if you ask.
 
-| Edit a profile                                           | Preview before applying                              |
-| -------------------------------------------------------- | ---------------------------------------------------- |
-| ![Profile editor](docs/screenshots/profile-graphics.png) | ![Apply preview](docs/screenshots/apply-preview.png) |
-
-![Importing a sound pack](docs/screenshots/import.png)
+| Create a profile                                   | Sounds & mods                                          |
+| -------------------------------------------------- | ------------------------------------------------------ |
+| ![New profile](docs/screenshots/new-profile.png)   | ![Sounds and mods](docs/screenshots/profile-files.png) |
+| **Edit graphics**                                  | **Preview before applying**                            |
+| ![Graphics](docs/screenshots/profile-graphics.png) | ![Apply preview](docs/screenshots/apply-preview.png)   |
 
 ## Install
 
@@ -47,7 +49,7 @@ Then:
 - Loadout needs Microsoft Edge WebView2, which Windows 10/11 already have. If it's missing, the
   installer downloads it. The portable exe needs it to be there already.
 - **GTA V installed under `Program Files`?** Windows only lets administrators change files
-  there. Sound packs that replace game audio need _Run as administrator_ in that case.
+  there. Sound files that replace game audio need _Run as administrator_ in that case.
   Everything else works without it.
 
 ## How to use it
@@ -55,26 +57,31 @@ Then:
 1. **First run**: Loadout finds your folders (`FiveM.app`, `%APPDATA%\CitizenFX`, the GTA V folder,
    `Documents\Rockstar Games\GTA V`) and backs up your current settings. Create a profile from
    your current settings, or start from the _Max FPS_ / _Ultra_ presets.
-2. **Packs → Import**: pick a downloaded pack. Check where its files will go (for example
-   `GTA V folder → x64/audio/sfx`), then import.
-3. **Edit a profile**:
+2. **New profile**:
+   - _Server_ (optional): paste the server's `IP:port` or `cfx.re/join/…` code and press
+     **Look up**. The name and logo fill in by themselves. If the server is offline, you can
+     still save it and pick a logo yourself.
+   - _Name_ and colour, then where the graphics start from: your current settings or a preset.
+   - _Sounds & mods_ (optional): upload your `WEAPONS_PLAYER.rpf`, `RESIDENT.rpf` and any mods.
+3. **Edit a profile** (click it):
+   - _Server_: change the address, look it up again or change the logo.
    - _Graphics_: tick the settings this profile controls. Anything unticked is left alone.
-   - _Packs_: add packs from the library.
+   - _Sounds & mods_: upload, replace or remove files.
    - _In-game settings_: pick values from `fivem.cfg`.
    - _Advanced_: raw `settings.xml` keys.
-4. **Play**: add your servers and link each to a profile. Hit ▶ and Loadout applies the profile,
-   then FiveM joins the server.
+4. **Play**: Loadout applies the profile, then FiveM joins its server. A profile without a
+   server just starts FiveM. _Apply without playing_ is in the profile's ⋮ menu.
 
 ### Where things live
 
-| What                                      | Path                                                    |
-| ----------------------------------------- | ------------------------------------------------------- |
-| FiveM graphics & display                  | `%APPDATA%\CitizenFX\gta5_settings.xml`                 |
-| FiveM in-game settings (`profile_*` etc.) | `%APPDATA%\CitizenFX\fivem.cfg`                         |
-| GTA V (Story/Online) graphics             | `Documents\Rockstar Games\GTA V\settings.xml`           |
-| Citizen packs, `.rpf` mods, ReShade       | `%LOCALAPPDATA%\FiveM\FiveM.app\{citizen,mods,plugins}` |
-| Sound packs that replace game audio       | `<GTA V folder>\x64\audio\sfx`                          |
-| Loadout's own data, backups and logs      | `%LOCALAPPDATA%\Loadout`                                |
+| What                                       | Path                                          |
+| ------------------------------------------ | --------------------------------------------- |
+| FiveM graphics & display                   | `%APPDATA%\CitizenFX\gta5_settings.xml`       |
+| FiveM in-game settings (`profile_*` etc.)  | `%APPDATA%\CitizenFX\fivem.cfg`               |
+| GTA V (Story/Online) graphics              | `Documents\Rockstar Games\GTA V\settings.xml` |
+| Mods (`.rpf`)                              | `%LOCALAPPDATA%\FiveM\FiveM.app\mods`         |
+| `WEAPONS_PLAYER.rpf`, `RESIDENT.rpf`       | `<GTA V folder>\x64\audio\sfx`                |
+| Loadout's own data, uploads, backups, logs | `%LOCALAPPDATA%\Loadout`                      |
 
 Loadout only rewrites the values a profile sets, and keeps every other byte of those files as it
 was. Hardware-specific values such as your GPU name, adapter index and replay buffers are never
@@ -84,11 +91,18 @@ its settings.
 ## Good to know
 
 - **Pure Mode**: servers with `sv_pureLevel` set may refuse modified files. Use a profile
-  without packs for those.
-- **GTA Online**: packs that replace files in the GTA V folder also affect Story Mode and GTA
-  Online. Restore vanilla before playing Online.
-- **Script hooks are blocked**: Loadout refuses to import executables, `.asi` loaders,
-  ScriptHookV and `dinput8.dll`. It handles settings and cosmetic files only.
+  without sounds or mods for those.
+- **GTA Online**: sound files replace files in the GTA V folder, so they also affect Story Mode
+  and GTA Online. Restore vanilla before playing Online.
+- **Only `.rpf` files**: sounds are single `.rpf` files, and mods are `.rpf` files or a `.zip` of
+  them. Executables, `.asi` loaders, ScriptHookV and `dinput8.dll` are refused. Loadout handles
+  settings and cosmetic files only.
+- **Server logos** come from the server itself (`/info.json`) or, for `cfx.re/join` codes, from
+  the FiveM server list. Servers that hide their info or are offline can't be looked up; pick a
+  logo by hand for those.
+- **Coming from 0.1?** Saved servers move onto the profile they were linked to, and packs from
+  the old pack library keep working in the profiles that used them. You can remove them in
+  _Sounds & mods_.
 - **FiveM for GTA V Enhanced** (early access since July 2026) isn't supported yet. Its file
   locations aren't confirmed, and Pure Mode is always on there anyway. The engine works from
   path detection and a value schema, so adding it later is a small change.
@@ -102,12 +116,15 @@ Loadout is not affiliated with Rockstar Games, Take-Two Interactive or Cfx.re.
 This checklist covers what automated tests can't reach:
 
 1. First run detects all four folders (or lets you browse to them).
-2. Create **Arena** (Max FPS, plus a gun sound pack) and **RP** (Ultra, no packs).
-3. Play Arena. In game, check that the graphics changed and the gun sounds are the pack's.
-4. Close FiveM and play RP. Check that Ultra is on and the sounds are vanilla again.
+2. Create **Arena** (Max FPS, your `WEAPONS_PLAYER.rpf`, your PvP server's `cfx.re/join` code)
+   and **RP** (Ultra, a mod, your RP server's `IP:port`). Both should show the server's logo.
+3. Play Arena. FiveM should join the server. In game, check that the graphics changed and the
+   gun sounds are yours.
+4. Close FiveM and play RP. Check that it joins the RP server, Ultra is on, the sounds are
+   vanilla again and the mod is loaded.
 5. **Backups → Restore vanilla**. The GTA V `x64\audio\sfx` files should be the originals
    (Steam/Rockstar "verify files" should find nothing to fix).
-6. **Quick Play** with a `cfx.re/join/…` code joins the server.
+6. Look up a server that's offline: the error should say so, and choosing a logo by hand works.
 7. For the settings marked _verify_, set each option in-game and compare it with
    `gta5_settings.xml`.
 
@@ -117,8 +134,9 @@ Tauri 2 app: a Rust backend in two crates and a React + TypeScript frontend.
 
 ```
 crates/loadout-core/   all file logic (no UI): settings.xml patcher, schema & presets, fivem.cfg,
-                       pack import, the apply engine (plan → journal → execute → rollback),
-                       backups, path detection. Fully tested against fake game folders.
+                       sound/mod uploads, the apply engine (plan → journal → execute →
+                       rollback), backups, path detection, server lookup. Fully tested against
+                       fake game folders.
 src-tauri/             the desktop shell: Tauri commands over loadout-core
 src/                   React UI. src/bindings is generated from Rust (ts-rs);
                        src/mock is an in-memory backend for running the UI in a browser

@@ -11,7 +11,7 @@ use std::sync::Arc;
 use loadout_core::deploy::Hooks;
 use loadout_core::fsutil;
 use loadout_core::model::{
-    FileOpKind, PackLayout, Profile, ProposedFileKind, Server, SettingsTarget,
+    FileOpKind, PackLayout, Profile, ProfileFileKind, ProposedFileKind, SettingsTarget,
 };
 use loadout_core::paths::{NoRegistry, SystemDirs};
 use loadout_core::process::FakeProcesses;
@@ -620,29 +620,145 @@ fn profiles_servers_and_validation() {
     let copy = w.app.duplicate_profile(&id).unwrap();
     assert_eq!(copy.name, "Arena (copy)");
 
-    let server = w
-        .app
-        .save_server(Server {
-            name: "".into(),
-            address: "https://cfx.re/join/abc123".into(),
-            profile_id: Some(id.clone()),
-            ..Default::default()
-        })
-        .unwrap();
-    assert_eq!(server.address, "cfx.re/join/abc123");
-    assert_eq!(server.name, "cfx.re/join/abc123");
-    assert!(w
-        .app
-        .save_server(Server {
-            address: "not a server".into(),
-            ..Default::default()
-        })
-        .is_err());
-    w.app.mark_played(&server.id).unwrap();
+    // The server lives on the profile: normalised, its name cleaned up.
+    let png = b"\x89PNG\r\n\x1a\nlogo";
+    let icon = loadout_core::servers::image_data_url(png).unwrap();
+    let mut profile = w.app.profiles().unwrap()[0].clone();
+    profile.server_address = Some(" https://cfx.re/join/abc123/ ".into());
+    profile.server_name = Some("^1Arena ^7PvP".into());
+    profile.server_icon = Some(icon.clone());
+    let saved = w.app.save_profile(profile.clone()).unwrap();
+    assert_eq!(saved.server_address.as_deref(), Some("cfx.re/join/abc123"));
+    assert_eq!(saved.server_name.as_deref(), Some("Arena PvP"));
+    assert_eq!(saved.server_icon.as_deref(), Some(icon.as_str()));
+    let copy = w.app.duplicate_profile(&id).unwrap();
+    assert_eq!(copy.server_address.as_deref(), Some("cfx.re/join/abc123"));
+
+    let mut bad = profile.clone();
+    bad.server_address = Some("not a server".into());
+    assert!(w.app.save_profile(bad).is_err());
+    let mut bad = profile.clone();
+    bad.server_icon = Some("data:image/svg+xml;base64,PHN2Zz4=".into());
+    assert!(w.app.save_profile(bad).is_err());
+
+    // Clearing the address clears the name and logo with it.
+    profile.server_address = Some("  ".into());
+    let saved = w.app.save_profile(profile).unwrap();
+    assert_eq!(
+        (saved.server_address, saved.server_name, saved.server_icon),
+        (None, None, None)
+    );
     w.app.delete_profile(&id).unwrap();
-    let servers = w.app.servers().unwrap();
-    assert_eq!(servers[0].profile_id, None);
-    assert!(servers[0].last_played_at.is_some());
+}
+
+#[test]
+fn profile_files_are_uploaded_applied_and_cleaned_up() {
+    let mut w = World::new();
+    let before = w.pack_tree();
+    let downloads = w.root.join("downloads");
+    write(&downloads.join("Glock sounds v2.rpf"), "custom weapons");
+    write(&downloads.join("resident fix.RPF"), "custom resident");
+    write(&downloads.join("better-blood.rpf"), "blood mod");
+    write(&downloads.join("readme.txt"), "hi");
+    let upload = |name: &str, kind| {
+        w.app
+            .import_profile_file(&downloads.join(name), kind, &mut |_| {})
+    };
+
+    let weapons = upload("Glock sounds v2.rpf", ProfileFileKind::WeaponSounds).unwrap();
+    assert_eq!(weapons.files[0].path, "x64/audio/sfx/WEAPONS_PLAYER.rpf");
+    assert_eq!(weapons.profile_file, Some(ProfileFileKind::WeaponSounds));
+    let resident = upload("resident fix.RPF", ProfileFileKind::ResidentSounds).unwrap();
+    assert_eq!(resident.files[0].path, "x64/audio/sfx/RESIDENT.rpf");
+    let blood = upload("better-blood.rpf", ProfileFileKind::Mod).unwrap();
+    assert_eq!(blood.files[0].path, "mods/better-blood.rpf");
+    assert_eq!(blood.name, "better-blood");
+    assert!(upload("readme.txt", ProfileFileKind::WeaponSounds).is_err());
+    assert!(upload("readme.txt", ProfileFileKind::Mod).is_err());
+    assert!(upload("missing.rpf", ProfileFileKind::Mod).is_err());
+
+    let id = w.profile(
+        "Arena",
+        "max-fps",
+        vec![weapons.id.clone(), resident.id.clone(), blood.id.clone()],
+        |_| {},
+    );
+    w.app.apply(Some(&id), &mut |_| {}).unwrap();
+    let read = |path: PathBuf| fs::read_to_string(path).unwrap();
+    assert_eq!(
+        read(w.gta("x64/audio/sfx/WEAPONS_PLAYER.rpf")),
+        "custom weapons"
+    );
+    assert_eq!(read(w.gta("x64/audio/sfx/RESIDENT.rpf")), "custom resident");
+    assert_eq!(read(w.fivem("mods/better-blood.rpf")), "blood mod");
+
+    // Replace the weapon sounds and drop the mod.
+    write(&downloads.join("other guns.rpf"), "other weapons");
+    let other = upload("other guns.rpf", ProfileFileKind::WeaponSounds).unwrap();
+    let mut profile = w.app.profiles().unwrap()[0].clone();
+    profile.packs = vec![other.id.clone(), resident.id.clone()];
+    w.app.save_profile(profile).unwrap();
+    // Still installed, so nothing is cleaned up yet.
+    assert_eq!(w.app.gc_profile_packs().unwrap(), 0);
+
+    w.app.apply(Some(&id), &mut |_| {}).unwrap();
+    assert_eq!(
+        read(w.gta("x64/audio/sfx/WEAPONS_PLAYER.rpf")),
+        "other weapons"
+    );
+    assert!(!w.fivem("mods/better-blood.rpf").exists());
+    // An upload for a profile that was never saved is cleaned up too.
+    let abandoned = upload("better-blood.rpf", ProfileFileKind::Mod).unwrap();
+    w.reopen();
+    let left: Vec<String> = w.app.packs().into_iter().map(|p| p.id).collect();
+    assert_eq!(left.len(), 2, "{left:?}");
+    assert!(left.contains(&other.id) && left.contains(&resident.id));
+    assert!(!w.app.pack_dir(&weapons.id).exists());
+    assert!(!w.app.pack_dir(&abandoned.id).exists());
+
+    // Restoring vanilla still puts the original game files back.
+    w.app.apply(None, &mut |_| {}).unwrap();
+    assert_eq!(w.pack_tree(), before);
+    w.data_dir_is_clean();
+}
+
+#[test]
+fn library_packs_are_never_cleaned_up() {
+    let mut w = World::new();
+    let pack = w.import("PvP Gun Sounds", &[("WEAPONS_PLAYER.rpf", "pvp weapons")]);
+    w.reopen();
+    assert_eq!(w.app.gc_profile_packs().unwrap(), 0);
+    assert!(w.app.packs().iter().any(|p| p.id == pack));
+}
+
+#[test]
+fn servers_from_v0_1_move_into_their_profiles() {
+    let mut w = World::new();
+    let arena = w.profile("Arena", "max-fps", vec![], |_| {});
+    let rp = w.profile("RP", "ultra", vec![], |p| {
+        p.server_address = Some("rp.example.com".into());
+    });
+    let servers = format!(
+        r#"[
+          {{"id":"1","name":"^2Arena PvP","address":"cfx.re/join/abc123","profileId":"{arena}","lastPlayedAt":null}},
+          {{"id":"2","name":"Other","address":"1.2.3.4:30120","profileId":"{rp}","lastPlayedAt":null}},
+          {{"id":"3","name":"Loose","address":"5.6.7.8:30120","profileId":null,"lastPlayedAt":null}}
+        ]"#
+    );
+    write(&w.app.data_dir().join("servers.json"), servers);
+    w.reopen();
+
+    let profiles = w.app.profiles().unwrap();
+    let get = |id: &str| profiles.iter().find(|p| p.id == id).unwrap().clone();
+    assert_eq!(
+        get(&arena).server_address.as_deref(),
+        Some("cfx.re/join/abc123")
+    );
+    assert_eq!(get(&arena).server_name.as_deref(), Some("Arena PvP"));
+    // A profile that already has a server keeps it.
+    assert_eq!(get(&rp).server_address.as_deref(), Some("rp.example.com"));
+    assert!(!w.app.data_dir().join("servers.json").exists());
+    assert!(w.app.data_dir().join("servers.migrated.json").exists());
 }
 
 #[test]

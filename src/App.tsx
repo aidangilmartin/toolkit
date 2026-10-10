@@ -8,7 +8,6 @@ import { ConfirmDialog, TooltipProvider } from "./components/ui/overlay";
 import { ApplyDialog } from "./features/apply/ApplyDialog";
 import { BackupsPage } from "./features/backups/BackupsPage";
 import { HomePage } from "./features/home/HomePage";
-import { PacksPage } from "./features/packs/PacksPage";
 import { ProfileEditor } from "./features/profile/ProfileEditor";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { SetupWizard } from "./features/setup/SetupWizard";
@@ -61,7 +60,6 @@ export default function App() {
           <main className="min-w-0 flex-1 overflow-y-auto">
             {view.name === "home" && <HomePage />}
             {view.name === "profile" && <ProfileEditor key={view.id} profileId={view.id} />}
-            {view.name === "packs" && <PacksPage />}
             {view.name === "backups" && <BackupsPage />}
             {view.name === "settings" && <SettingsPage />}
           </main>

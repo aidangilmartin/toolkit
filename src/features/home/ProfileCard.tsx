@@ -1,9 +1,10 @@
 import {
+  Check,
   Copy,
   Crosshair,
   EllipsisVertical,
   Globe,
-  Package,
+  Music,
   Pencil,
   Play,
   SlidersHorizontal,
@@ -14,12 +15,13 @@ import { toast } from "sonner";
 
 import { api, errorMessage } from "../../api";
 import type { Profile } from "../../api/types";
+import { ServerLogo } from "../../components/ServerLogo";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/misc";
 import { ConfirmDialog, Menu, MenuItem, MenuSeparator } from "../../components/ui/overlay";
 import { plural } from "../../lib/format";
-import { graphicsSummary, packNames } from "../../lib/profile";
-import { useApp } from "../../store/app";
+import { filesSummary, graphicsSummary, serverLabel } from "../../lib/profile";
+import { useApp, type AfterApply } from "../../store/app";
 
 function Line({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
@@ -41,9 +43,12 @@ export function ProfileCard({ profile }: { profile: Profile }) {
 
   const active = status?.activeProfileId === profile.id;
   const drifted = active && (status?.settingsDrift.length ?? 0) > 0;
-  const names = packNames(profile, packs);
   const cfgCount = Object.keys(profile.fivemCfg).length;
+  const server = serverLabel(profile);
   const edit = () => navigate({ name: "profile", id: profile.id });
+  const play: AfterApply = profile.serverAddress
+    ? { kind: "connect", address: profile.serverAddress }
+    : { kind: "launch" };
 
   return (
     <div
@@ -59,17 +64,18 @@ export function ProfileCard({ profile }: { profile: Profile }) {
         className="h-1.5"
         style={{ background: `linear-gradient(90deg, ${profile.color}, ${profile.color}33)` }}
       />
-      <div className="flex items-start gap-2 px-4 pt-3.5">
-        <button onClick={edit} className="min-w-0 flex-1 text-left">
-          <p className="truncate font-semibold">{profile.name}</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {active && (
-              <Badge tone="accent" className="border-transparent">
-                Active
-              </Badge>
-            )}
-            {drifted && <Badge tone="warn">Changed in-game</Badge>}
-            {profile.applyToGta && <Badge icon={<Globe className="size-3" />}>+ GTA V</Badge>}
+      <div className="flex items-start gap-3 px-4 pt-3.5">
+        <button onClick={edit} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+          <ServerLogo icon={profile.serverIcon} color={profile.color} className="size-12" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{profile.name}</p>
+            <p className="truncate text-xs text-muted" title={profile.serverAddress ?? undefined}>
+              {!profile.serverAddress
+                ? "No server · Play starts FiveM"
+                : profile.serverName && profile.serverName !== profile.name
+                  ? profile.serverName
+                  : profile.serverAddress}
+            </p>
           </div>
         </button>
         <Menu
@@ -81,6 +87,9 @@ export function ProfileCard({ profile }: { profile: Profile }) {
         >
           <MenuItem icon={<Pencil />} onSelect={edit}>
             Edit
+          </MenuItem>
+          <MenuItem icon={<Check />} onSelect={() => requestApply(profile.id)}>
+            Apply without playing
           </MenuItem>
           <MenuItem
             icon={<Copy />}
@@ -102,28 +111,34 @@ export function ProfileCard({ profile }: { profile: Profile }) {
         </Menu>
       </div>
 
+      {(active || drifted || profile.applyToGta) && (
+        <div className="flex flex-wrap gap-1.5 px-4 pt-2.5">
+          {active && (
+            <Badge tone="accent" className="border-transparent">
+              Active
+            </Badge>
+          )}
+          {drifted && <Badge tone="warn">Changed in-game</Badge>}
+          {profile.applyToGta && <Badge icon={<Globe className="size-3" />}>+ GTA V</Badge>}
+        </div>
+      )}
+
       <button onClick={edit} className="space-y-1.5 px-4 pt-3 text-left">
         <Line icon={<SlidersHorizontal />}>{graphicsSummary(profile, schema)}</Line>
-        <Line icon={<Package />}>
-          {names.length ? names.join(" · ") : "No packs (vanilla files)"}
-        </Line>
+        <Line icon={<Music />}>{filesSummary(profile, packs)}</Line>
         <Line icon={<Crosshair />}>
           {cfgCount ? plural(cfgCount, "in-game setting") : "In-game settings unchanged"}
         </Line>
       </button>
 
-      <div className="mt-auto flex items-center gap-2 px-4 pt-4 pb-4">
-        <Button size="sm" className="flex-1" onClick={() => requestApply(profile.id)}>
-          {active ? "Re-apply" : "Apply"}
-        </Button>
+      <div className="mt-auto px-4 pt-4 pb-4">
         <Button
-          size="sm"
           variant="primary"
-          className="flex-1"
+          className="w-full"
           icon={<Play className="size-3.5 fill-current" />}
-          onClick={() => requestApply(profile.id, { kind: "launch" })}
+          onClick={() => requestApply(profile.id, play)}
         >
-          Play
+          <span className="truncate">{server ? `Play · ${server}` : "Play"}</span>
         </Button>
       </div>
 
@@ -133,15 +148,15 @@ export function ProfileCard({ profile }: { profile: Profile }) {
         title={`Delete “${profile.name}”?`}
         description={
           active
-            ? "Its settings and packs stay installed until you apply another profile or restore vanilla."
-            : "This only deletes the profile. Your packs stay in the library."
+            ? "Its settings, sounds and mods stay installed until you apply another profile or restore vanilla."
+            : "Its uploaded sounds and mods are cleaned up too, unless another profile uses them."
         }
         confirmLabel="Delete"
         tone="danger"
         onConfirm={async () => {
           try {
             await api.deleteProfile(profile.id);
-            await refresh("profiles", "servers", "status");
+            await refresh("profiles", "packs", "status");
           } catch (error) {
             toast.error(errorMessage(error));
           }

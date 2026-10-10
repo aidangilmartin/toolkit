@@ -19,7 +19,7 @@ import { Button } from "../../components/ui/button";
 import { Badge, ColorDot, ProgressBar } from "../../components/ui/misc";
 import { Modal } from "../../components/ui/overlay";
 import { formatBytes, plural } from "../../lib/format";
-import { displayValue } from "../../lib/profile";
+import { displayValue, serverLabel } from "../../lib/profile";
 import { useApp, type AfterApply, type ApplyRequest } from "../../store/app";
 
 type Phase =
@@ -41,7 +41,7 @@ export function ApplyDialog() {
   return request ? <ApplyFlow key={request.key} request={request} onClose={close} /> : null;
 }
 
-function thenLabel(then: AfterApply, serverName?: string): string {
+function thenLabel(then: AfterApply, serverName: string | null): string {
   if (!then) return "Apply";
   if (then.kind === "launch") return "Apply & launch FiveM";
   return serverName ? `Apply & join ${serverName}` : "Apply & join";
@@ -49,7 +49,6 @@ function thenLabel(then: AfterApply, serverName?: string): string {
 
 function ApplyFlow({ request, onClose }: { request: ApplyRequest; onClose: () => void }) {
   const profiles = useApp((s) => s.profiles);
-  const servers = useApp((s) => s.servers);
   const confirmFiles = useApp((s) => s.config?.confirmFileChanges ?? true);
   const refresh = useApp((s) => s.refresh);
   const [phase, setPhase] = useState<Phase>({ name: "planning" });
@@ -58,7 +57,7 @@ function ApplyFlow({ request, onClose }: { request: ApplyRequest; onClose: () =>
 
   const profile = profiles.find((p) => p.id === request.profileId);
   const then = request.then;
-  const server = then?.kind === "connect" ? servers.find((s) => s.id === then.serverId) : undefined;
+  const serverName = then?.kind === "connect" && profile ? serverLabel(profile) : null;
   const title = profile ? profile.name : "Restore vanilla";
 
   const runThen = useCallback(async () => {
@@ -68,10 +67,10 @@ function ApplyFlow({ request, onClose }: { request: ApplyRequest; onClose: () =>
       await api.launchFivem();
       toast.success("Starting FiveM…");
     } else {
-      await api.connectServer(then.address, then.serverId);
-      toast.success(`Joining ${server?.name ?? then.address}…`);
+      await api.connectServer(then.address);
+      toast.success(`Joining ${serverName ?? then.address}…`);
     }
-  }, [request.then, server?.name]);
+  }, [request.then, serverName]);
 
   const apply = useCallback(
     async (plan: ApplyPlan) => {
@@ -82,7 +81,7 @@ function ApplyFlow({ request, onClose }: { request: ApplyRequest; onClose: () =>
       try {
         await api.applyProfile(request.profileId);
         unlisten();
-        await refresh("status", "snapshots", "servers");
+        await refresh("status", "snapshots", "packs");
         toast.success(profile ? `“${profile.name}” applied` : "Back to vanilla");
         try {
           await runThen();
@@ -203,7 +202,7 @@ function ApplyFlow({ request, onClose }: { request: ApplyRequest; onClose: () =>
             onClick={() => void apply(phase.plan)}
             icon={request.then ? <Play className="size-3.5 fill-current" /> : undefined}
           >
-            {profile ? thenLabel(request.then, server?.name) : "Restore vanilla"}
+            {profile ? thenLabel(request.then, serverName) : "Restore vanilla"}
           </Button>
         </>
       );
@@ -322,7 +321,7 @@ function PlanSummary({ plan, vanilla }: { plan: ApplyPlan; vanilla: boolean }) {
       {plan.files.length > 0 && (
         <div className="rounded-xl border border-line bg-surface-2">
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm font-medium">Pack files</span>
+            <span className="text-sm font-medium">Sounds & mods</span>
             <span className="text-xs text-muted">
               {plural(plan.files.length, "file")} · {formatBytes(plan.copyBytes)} to copy
             </span>
@@ -336,11 +335,11 @@ function PlanSummary({ plan, vanilla }: { plan: ApplyPlan; vanilla: boolean }) {
       )}
 
       {plan.conflicts.length > 0 && (
-        <Banner tone="info" title="Some packs ship the same file">
+        <Banner tone="info" title="Some files are in this profile twice">
           {plan.conflicts.map((c) => (
             <div key={c.path}>
-              <span className="font-mono text-fg">{c.path}</span>: “{c.winner}” wins (it's lower in
-              the profile's pack list).
+              <span className="font-mono text-fg">{c.path}</span>: “{c.winner}” wins (it was added
+              last).
             </div>
           ))}
         </Banner>

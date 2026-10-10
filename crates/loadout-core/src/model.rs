@@ -53,7 +53,7 @@ impl Default for AppConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Profiles & servers
+// Profiles
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
@@ -72,7 +72,14 @@ pub struct Profile {
     /// Partial overlay for fivem.cfg: `"profile_fpsFieldOfView" -> "5"`.
     pub fivem_cfg: BTreeMap<String, String>,
     /// Pack ids in priority order (a later pack wins when two packs ship the same file).
+    /// Files uploaded in the profile (sounds, mods) are packs too, marked with
+    /// [`Pack::profile_file`].
     pub packs: Vec<String>,
+    /// Server to join after applying: `ip:port`, a hostname or `cfx.re/join/<code>`.
+    pub server_address: Option<String>,
+    pub server_name: Option<String>,
+    /// The server's logo as a `data:image/…;base64,` URL.
+    pub server_icon: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -88,23 +95,51 @@ impl Default for Profile {
             apply_to_gta: false,
             fivem_cfg: BTreeMap::new(),
             packs: Vec::new(),
+            server_address: None,
+            server_name: None,
+            server_icon: None,
             created_at: String::new(),
             updated_at: String::new(),
         }
     }
 }
 
+/// What a server lookup found: shown before the user saves it into a profile.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, TS)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase")]
 #[ts(export)]
-pub struct Server {
-    pub id: String,
-    pub name: String,
-    /// `ip:port`, a hostname, or `cfx.re/join/<code>`.
+pub struct ServerInfo {
+    /// The normalised address, as stored in a profile.
     pub address: String,
-    /// Profile applied before connecting. `None` connects without changing anything.
-    pub profile_id: Option<String>,
-    pub last_played_at: Option<String>,
+    pub name: Option<String>,
+    /// The server's logo as a `data:image/…;base64,` URL.
+    pub icon: Option<String>,
+    pub players: Option<u32>,
+    pub max_players: Option<u32>,
+}
+
+/// Files a profile carries itself, uploaded when creating or editing it.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum ProfileFileKind {
+    /// Replaces `GTA V/x64/audio/sfx/WEAPONS_PLAYER.rpf`.
+    WeaponSounds,
+    /// Replaces `GTA V/x64/audio/sfx/RESIDENT.rpf`.
+    ResidentSounds,
+    /// An `.rpf` mod for `FiveM.app/mods`.
+    Mod,
+}
+
+impl ProfileFileKind {
+    /// Where a sound file goes, relative to the GTA V folder.
+    pub fn sound_dest(self) -> Option<&'static str> {
+        match self {
+            ProfileFileKind::WeaponSounds => Some("x64/audio/sfx/WEAPONS_PLAYER.rpf"),
+            ProfileFileKind::ResidentSounds => Some("x64/audio/sfx/RESIDENT.rpf"),
+            ProfileFileKind::Mod => None,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +204,10 @@ pub struct Pack {
     pub imported_at: String,
     #[serde(default)]
     pub notes: String,
+    /// Set for files uploaded in a profile. These packs belong to the profiles that
+    /// list them and are deleted once none do.
+    #[serde(default)]
+    pub profile_file: Option<ProfileFileKind>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]

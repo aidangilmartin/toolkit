@@ -2,11 +2,12 @@ import type {
   GraphicsSchema,
   InstallRoot,
   Pack,
-  PackCategory,
   Preset,
   Profile,
+  ProfileFileKind,
   SettingDef,
 } from "../api/types";
+import { plural } from "./format";
 
 export const PROFILE_COLORS = [
   "#34d399",
@@ -18,16 +19,6 @@ export const PROFILE_COLORS = [
   "#2dd4bf",
   "#fb923c",
 ];
-
-export const CATEGORY_LABEL: Record<PackCategory, string> = {
-  soundPack: "Sound pack",
-  citizen: "Citizen pack",
-  mods: "Mods",
-  reshade: "ReShade / visuals",
-  other: "Other",
-};
-
-export const CATEGORY_ORDER: PackCategory[] = ["soundPack", "citizen", "reshade", "mods", "other"];
 
 export const ROOT_LABEL: Record<InstallRoot, string> = {
   fivemApp: "FiveM.app",
@@ -44,6 +35,9 @@ export function emptyProfile(overrides: Partial<Profile> = {}): Profile {
     applyToGta: false,
     fivemCfg: {},
     packs: [],
+    serverAddress: null,
+    serverName: null,
+    serverIcon: null,
     createdAt: "",
     updatedAt: "",
     ...overrides,
@@ -80,30 +74,60 @@ export function graphicsSummary(profile: Profile, schema: GraphicsSchema | null)
   return `Custom graphics · ${count} settings`;
 }
 
-export function packNames(profile: Profile, packs: Pack[]): string[] {
-  return profile.packs
-    .map((id) => packs.find((p) => p.id === id)?.name)
-    .filter((name): name is string => Boolean(name));
+export type SoundKind = Exclude<ProfileFileKind, "mod">;
+
+export const SOUND_FILES: Record<SoundKind, { label: string; file: string }> = {
+  weaponSounds: { label: "Weapon sounds", file: "WEAPONS_PLAYER.rpf" },
+  residentSounds: { label: "Resident sounds", file: "RESIDENT.rpf" },
+};
+
+export interface ProfileFiles {
+  weaponSounds: Pack | null;
+  residentSounds: Pack | null;
+  mods: Pack[];
+  /** Packs imported into the old pack library (v0.1) that this profile still uses. */
+  older: Pack[];
 }
 
-export interface Conflict {
-  path: string;
-  root: InstallRoot;
-  packs: string[];
-}
-
-/** Files shipped by more than one of the given packs (the later pack wins). */
-export function packConflicts(selected: Pack[]): Conflict[] {
-  const seen = new Map<string, Conflict>();
-  for (const pack of selected) {
-    for (const file of pack.files) {
-      const key = `${pack.root}:${file.path.toLowerCase()}`;
-      const existing = seen.get(key);
-      if (existing) existing.packs.push(pack.name);
-      else seen.set(key, { path: file.path, root: pack.root, packs: [pack.name] });
-    }
+/** The profile's packs sorted into its upload slots. */
+export function profileFiles(packIds: string[], packs: Pack[]): ProfileFiles {
+  const files: ProfileFiles = { weaponSounds: null, residentSounds: null, mods: [], older: [] };
+  for (const id of packIds) {
+    const pack = packs.find((p) => p.id === id);
+    if (!pack) continue;
+    if (pack.profileFile === "mod") files.mods.push(pack);
+    else if (pack.profileFile) files[pack.profileFile] = pack;
+    else files.older.push(pack);
   }
-  return [...seen.values()].filter((c) => c.packs.length > 1);
+  return files;
+}
+
+/** Put `packId` in a sound slot (replacing what was there), or empty it with null. */
+export function setSoundFile(
+  packIds: string[],
+  packs: Pack[],
+  kind: SoundKind,
+  packId: string | null,
+): string[] {
+  const kept = packIds.filter((id) => packs.find((p) => p.id === id)?.profileFile !== kind);
+  // Last wins when two packs ship the same file, so uploads go after older packs.
+  return packId ? [...kept, packId] : kept;
+}
+
+/** One line for the profile card: what the profile installs. */
+export function filesSummary(profile: Profile, packs: Pack[]): string {
+  const files = profileFiles(profile.packs, packs);
+  const parts: string[] = [];
+  if (files.weaponSounds) parts.push("Weapon sounds");
+  if (files.residentSounds) parts.push("Resident sounds");
+  if (files.mods.length) parts.push(plural(files.mods.length, "mod"));
+  if (files.older.length) parts.push(plural(files.older.length, "pack"));
+  return parts.length ? parts.join(" · ") : "Vanilla sounds · no mods";
+}
+
+/** What to call the profile's server: its name, or the address. */
+export function serverLabel(profile: Profile): string | null {
+  return profile.serverName || profile.serverAddress;
 }
 
 /** A sensible starting value for a setting that's being switched on. */

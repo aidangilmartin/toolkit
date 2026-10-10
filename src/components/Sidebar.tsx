@@ -1,4 +1,4 @@
-import { Gamepad2, History, Package, Settings } from "lucide-react";
+import { Gamepad2, History, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { timeAgo } from "../lib/format";
@@ -8,7 +8,6 @@ import { ColorDot } from "./ui/misc";
 
 const items: { view: View; label: string; icon: ReactNode }[] = [
   { view: { name: "home" }, label: "Play", icon: <Gamepad2 /> },
-  { view: { name: "packs" }, label: "Packs", icon: <Package /> },
   { view: { name: "backups" }, label: "Backups", icon: <History /> },
   { view: { name: "settings" }, label: "Settings", icon: <Settings /> },
 ];

@@ -11,7 +11,8 @@ use crate::fsutil;
 
 pub const CONFIG: &str = "config.json";
 pub const PROFILES: &str = "profiles.json";
-pub const SERVERS: &str = "servers.json";
+/// Saved servers from v0.1.0, moved into profiles on first start.
+pub const LEGACY_SERVERS: &str = "servers.json";
 pub const STATE: &str = "state.json";
 
 #[derive(Debug, Clone)]

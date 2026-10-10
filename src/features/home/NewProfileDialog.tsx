@@ -1,14 +1,16 @@
 import { FileDown, Gauge, Scale, Sparkles, Square, Sun, type LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { api, errorMessage } from "../../api";
 import { Button } from "../../components/ui/button";
-import { Field, Input } from "../../components/ui/form";
+import { Input } from "../../components/ui/form";
 import { Modal } from "../../components/ui/overlay";
 import { cn } from "../../lib/cn";
 import { emptyProfile, PROFILE_COLORS } from "../../lib/profile";
 import { useApp } from "../../store/app";
+import { FilesSection } from "../profile/FilesSection";
+import { ServerSection, type ServerFields } from "../profile/ServerSection";
 
 const presetIcons: Record<string, LucideIcon> = {
   "max-fps": Gauge,
@@ -43,11 +45,38 @@ export function NewProfileDialog({ open, onClose }: { open: boolean; onClose: ()
       open={open}
       onOpenChange={(next) => !next && onClose()}
       title="New profile"
-      description="Start from a preset or from the settings you're using right now. You can fine-tune everything next."
-      size="md"
+      description="Settings, sounds and mods that get switched together, and the server to join with them. You can change all of it later."
+      size="lg"
     >
       {open && <NewProfileForm onDone={onClose} />}
     </Modal>
+  );
+}
+
+function Step({
+  n,
+  title,
+  hint,
+  children,
+}: {
+  n: number;
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="grid grid-cols-[1.5rem_1fr] gap-x-3">
+      <span className="mt-px flex size-6 items-center justify-center rounded-full bg-surface-3 text-[11px] font-semibold text-muted">
+        {n}
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">
+          {title}
+          {hint && <span className="ml-2 text-xs font-normal text-subtle">{hint}</span>}
+        </p>
+        <div className="mt-2.5">{children}</div>
+      </div>
+    </section>
   );
 }
 
@@ -57,7 +86,15 @@ function NewProfileForm({ onDone }: { onDone: () => void }) {
   const refresh = useApp((s) => s.refresh);
   const navigate = useApp((s) => s.navigate);
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [color, setColor] = useState(PROFILE_COLORS[profiles.length % PROFILE_COLORS.length]);
+  const [server, setServer] = useState<ServerFields>({
+    serverAddress: null,
+    serverName: null,
+    serverIcon: null,
+  });
+  const [lookingUp, setLookingUp] = useState(false);
+  const [packs, setPacks] = useState<string[]>([]);
   const [start, setStart] = useState<string>("current");
   const [saving, setSaving] = useState(false);
 
@@ -80,7 +117,7 @@ function NewProfileForm({ onDone }: { onDone: () => void }) {
   const create = async () => {
     setSaving(true);
     try {
-      const profile = emptyProfile({ name, color });
+      const profile = emptyProfile({ name, color, ...server, packs });
       if (start === "current") {
         const captured = await api.captureCurrent();
         if (!captured.fivemGraphicsFound) {
@@ -94,7 +131,12 @@ function NewProfileForm({ onDone }: { onDone: () => void }) {
       const saved = await api.saveProfile(profile);
       await refresh("profiles");
       onDone();
-      navigate({ name: "profile", id: saved.id });
+      toast.success(`“${saved.name}” is ready`, {
+        description: saved.serverAddress
+          ? "Press Play to switch to it and join the server."
+          : "Press Play to switch to it and start FiveM.",
+        action: { label: "Edit", onClick: () => navigate({ name: "profile", id: saved.id }) },
+      });
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -104,30 +146,43 @@ function NewProfileForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form
-      className="space-y-5"
+      className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
         void create();
       }}
     >
-      <div className="grid grid-cols-[1fr_auto] items-end gap-4">
-        <Field label="Name">
+      <Step n={1} title="Server" hint="optional">
+        <ServerSection
+          autoFocus
+          value={server}
+          color={color}
+          onChange={(patch) => setServer((current) => ({ ...current, ...patch }))}
+          onFound={(info) => {
+            if (!nameTouched && info.name) setName(info.name.slice(0, 60));
+          }}
+          onBusy={setLookingUp}
+        />
+      </Step>
+
+      <Step n={2} title="Name">
+        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
           <Input
-            autoFocus
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameTouched(true);
+            }}
             placeholder="e.g. Arena – Max FPS"
+            aria-label="Profile name"
             maxLength={60}
           />
-        </Field>
-        <div>
-          <span className="mb-1.5 block text-xs font-medium text-muted">Colour</span>
           <ColorPicker value={color} onChange={setColor} />
         </div>
-      </div>
-      <div>
-        <span className="mb-1.5 block text-xs font-medium text-muted">Start from</span>
-        <div className="grid grid-cols-2 gap-2">
+      </Step>
+
+      <Step n={3} title="Graphics" hint="fine-tune them later in the profile">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
           {options.map((option) => {
             const Icon = option.icon;
             return (
@@ -156,12 +211,22 @@ function NewProfileForm({ onDone }: { onDone: () => void }) {
             );
           })}
         </div>
-      </div>
-      <div className="flex justify-end gap-2">
+      </Step>
+
+      <Step n={4} title="Sounds & mods" hint="optional">
+        <FilesSection packIds={packs} onChange={setPacks} narrow />
+      </Step>
+
+      <div className="flex justify-end gap-2 border-t border-line pt-4">
         <Button variant="ghost" onClick={onDone}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary" loading={saving} disabled={!name.trim()}>
+        <Button
+          type="submit"
+          variant="primary"
+          loading={saving || lookingUp}
+          disabled={!name.trim()}
+        >
           Create profile
         </Button>
       </div>

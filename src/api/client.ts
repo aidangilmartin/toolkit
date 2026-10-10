@@ -6,13 +6,11 @@ import type {
   CapturedSettings,
   FolderTarget,
   GraphicsSchema,
-  ImportProposal,
   Pack,
-  PackCategory,
-  PackLayout,
   Profile,
+  ProfileFileKind,
   Progress,
-  Server,
+  ServerInfo,
   Snapshot,
 } from "./types";
 
@@ -36,15 +34,14 @@ export interface Api {
   duplicateProfile(id: string): Promise<Profile>;
   deleteProfile(id: string): Promise<void>;
 
-  listServers(): Promise<Server[]>;
-  saveServer(server: Server): Promise<Server>;
-  deleteServer(id: string): Promise<void>;
+  /** Name, logo and players for a server address. Goes over the network. */
+  lookupServer(address: string): Promise<ServerInfo>;
+  /** A logo picked by hand, as a data: URL. */
+  readLogoFile(path: string): Promise<string>;
 
   listPacks(): Promise<Pack[]>;
-  inspectPack(path: string, layout?: PackLayout | null): Promise<ImportProposal>;
-  importPack(proposal: ImportProposal): Promise<Pack>;
-  updatePack(id: string, name: string, category: PackCategory, notes: string): Promise<Pack>;
-  deletePack(id: string): Promise<void>;
+  /** Copy an uploaded sound file or mod in. Add the returned pack's id to the profile. */
+  importProfileFile(path: string, kind: ProfileFileKind): Promise<Pack>;
 
   planApply(profileId: string | null): Promise<ApplyPlan>;
   applyProfile(profileId: string | null): Promise<ApplyResult>;
@@ -56,12 +53,14 @@ export interface Api {
   deleteSnapshot(id: string): Promise<void>;
 
   launchFivem(): Promise<void>;
-  connectServer(address: string, serverId?: string | null): Promise<void>;
+  connectServer(address: string): Promise<void>;
   openFolder(target: FolderTarget): Promise<void>;
 
   /** Native pickers. Return null when cancelled. */
   pickFolder(title: string): Promise<string | null>;
-  pickPackFile(): Promise<string | null>;
+  /** Sound files are a single .rpf; mods can be several .rpf or .zip files. */
+  pickProfileFiles(kind: ProfileFileKind): Promise<string[]>;
+  pickImage(): Promise<string | null>;
 
   onProgress(listener: (progress: Progress) => void): Promise<() => void>;
 }

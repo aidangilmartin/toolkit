@@ -58,7 +58,8 @@ export function SetupWizard() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Welcome to Loadout</h1>
             <p className="text-sm text-muted">
-              Switch FiveM graphics, in-game settings and sound packs in one click, per server.
+              Switch FiveM graphics, in-game settings, sounds and mods in one click, then join your
+              server.
             </p>
           </div>
         </div>
@@ -121,7 +122,7 @@ export function SetupWizard() {
                 <Gauge className="size-5 text-info" />
                 <p className="mt-3 font-medium">Start with two presets</p>
                 <p className="mt-1 flex-1 text-xs text-muted">
-                  “Arena – Max FPS” and “RP – Ultra”. Add your sound packs and servers to them
+                  “Arena – Max FPS” and “RP – Ultra”. Add your server, sounds and mods to them
                   afterwards.
                 </p>
                 <Button

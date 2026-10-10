@@ -4,7 +4,7 @@ name: Release
 # app version in src-tauri/tauri.conf.json, whenever that version has no release yet.
 # It runs when:
 # - a commit lands on the default branch (so bumping the version releases it),
-# - a tag like v0.1.0 is pushed (it must match the app version), or
+# - a tag like v0.2.0 is pushed (it must match the app version), or
 # - it's started by hand from the Actions tab (Release → Run workflow).
 on:
   push:
@@ -13,9 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to create and release, e.g. v0.1.0
+        description: Tag to create and release, e.g. v0.2.0
         required: true
-        default: v0.1.0
+        default: v0.2.0
 
 permissions:
   contents: write
@@ -90,7 +90,7 @@ jobs:
           releaseDraft: false
           prerelease: false
           releaseBody: |
-            Switch GTA V and FiveM graphics, in-game settings and sound packs in one click, then join your server. Keep an "Arena – Max FPS" setup for PvP, a "City RP – Ultra" setup for roleplay, and anything in between.
+            Switch GTA V and FiveM graphics, in-game settings, your own sounds and mods in one click, then join your server. Keep an "Arena – Max FPS" profile for PvP, a "City RP – Ultra" profile for roleplay, and anything in between.
 
             ## Download
 
@@ -99,24 +99,28 @@ jobs:
 
             Windows will probably show a SmartScreen warning because the app isn't code-signed yet. Click **More info → Run anyway**.
 
+            ## What's new
+
+            - **Each profile has its server.** Enter the server's IP:port or cfx.re/join code when you create or edit a profile. Loadout looks up the server's name and logo and shows them on the profile, and **Play** applies the profile and joins the server.
+            - **Upload your own sounds and mods per profile**: a `WEAPONS_PLAYER.rpf`, a `RESIDENT.rpf` and any `.rpf` mods for FiveM's mods folder. Replace or remove them any time in the profile's **Sounds & mods** tab.
+            - The Packs page and Quick Play are gone: everything lives on the profile now. Servers saved in 0.1 move onto their profile automatically, and packs from the old library keep working.
+
             ## What it does
 
-            - **Profiles**: graphics and display settings (Max FPS, Balanced, High and Ultra presets, or any setting tweaked), GTA's in-game settings (FOV, brightness, HUD, volumes) and a set of packs, all applied together.
-            - **Quick Play**: save a server once with its profile. Play applies the profile, then FiveM joins the server.
-            - **Pack library**: import sound packs, citizen packs, ReShade presets and `.rpf` mods from a folder, `.zip` or `.rpf`. Executables and script hooks are refused.
+            - **Profiles**: graphics and display settings (Max FPS, Balanced, High and Ultra presets, or any setting tweaked), GTA's in-game settings (FOV, brightness, HUD, volumes), your sounds and mods, and the server to join, all switched together.
             - **Safe switching**: every file is backed up first. A failed or interrupted apply puts every file back, and **Restore vanilla** returns the game files to how they were.
-            - **Notices changes**: settings you changed in-game (offers to save them into the profile) and pack files replaced by a FiveM update (offers to re-apply).
+            - **Notices changes**: settings you changed in-game (offers to save them into the profile) and files replaced by a FiveM update (offers to re-apply).
 
             ## Good to know
 
             - Close FiveM before switching. Loadout waits for it, or closes it if you ask.
-            - If GTA V is installed under Program Files, run Loadout as administrator to install sound packs into the game folder.
-            - Packs in the GTA V folder also affect Story Mode and GTA Online, so restore vanilla before playing Online.
+            - Sound files go into the GTA V folder. If GTA V is installed under Program Files, run Loadout as administrator for those. They also affect Story Mode and GTA Online, so restore vanilla before playing Online.
             - Servers using Pure Mode may refuse modified files.
+            - Servers that are offline or hide their info can't be looked up. Pick a logo by hand for those.
 
             ## Known limitations
 
-            - This is the first release and it hasn't been tested on a real PC with FiveM yet. Please open an issue if something goes wrong.
+            - Loadout hasn't been tested on a real PC with FiveM yet. Please open an issue if something goes wrong.
             - The frame scaling and aspect ratio values are marked "verify" in the editor until they're confirmed in-game.
             - FiveM for GTA V Enhanced isn't supported yet.
       - name: Attach the portable exe
