@@ -25,6 +25,7 @@ export const tauriApi: Api = {
   deleteProfile: (id) => invoke("delete_profile", { id }),
 
   lookupServer: (address) => invoke("lookup_server", { address }),
+  searchServers: (query) => invoke("search_servers", { query }),
   readLogoFile: (path) => invoke("read_logo_file", { path }),
 
   listPacks: () => invoke("list_packs"),

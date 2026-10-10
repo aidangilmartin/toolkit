@@ -5,7 +5,8 @@
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use crate::backup;
 use crate::deploy::{self, Hooks};
@@ -16,12 +17,13 @@ use crate::launch;
 use crate::model::{
     AppConfig, AppStatus, ApplyPlan, ApplyResult, CapturedSettings, DeployState, ImportProposal,
     Pack, PackCategory, PackLayout, Profile, ProfileFileKind, Progress, ProposedFileKind,
-    ServerInfo, SettingsDrift, SettingsTarget, Snapshot,
+    ServerInfo, ServerSearch, SettingsDrift, SettingsTarget, Snapshot,
 };
 use crate::packs;
 use crate::paths::{self, RegistryProbe, ResolvedPaths, SystemDirs};
 use crate::process::ProcessProbe;
 use crate::schema::{self, GraphicsSchema};
+use crate::server_list;
 use crate::servers;
 use crate::settings_xml::SettingsXml;
 use crate::store::{self, Store};
@@ -33,7 +35,17 @@ pub struct Loadout {
     processes: Box<dyn ProcessProbe>,
     op_lock: Mutex<()>,
     notice: Mutex<Option<String>>,
+    /// The FiveM server list, downloaded on the first search.
+    server_list: Mutex<Option<CachedList>>,
 }
+
+struct CachedList {
+    fetched: Instant,
+    servers: Arc<Vec<server_list::Indexed>>,
+}
+
+/// How long a downloaded server list is searched before it's fetched again.
+const SERVER_LIST_TTL: Duration = Duration::from_secs(10 * 60);
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -64,6 +76,7 @@ impl Loadout {
             processes,
             op_lock: Mutex::new(()),
             notice: Mutex::new(notice),
+            server_list: Mutex::new(None),
         };
         if let Err(err) = app.gc_profile_packs() {
             log::error!("couldn't clean up unused profile files: {err}");
@@ -323,6 +336,39 @@ impl Loadout {
     /// Name, logo and player count for a server address (network, a few seconds at most).
     pub fn lookup_server(&self, address: &str) -> Result<ServerInfo> {
         servers::lookup(address)
+    }
+
+    /// Search the FiveM server list by name, tag or join code. The list is
+    /// downloaded on first use (while other searches wait for it) and kept for
+    /// ten minutes. If a refresh fails, the previous list is searched instead.
+    pub fn search_servers(&self, query: &str) -> Result<ServerSearch> {
+        let servers = {
+            let mut cache = lock(&self.server_list);
+            match cache.as_ref() {
+                Some(cached) if cached.fetched.elapsed() < SERVER_LIST_TTL => {
+                    cached.servers.clone()
+                }
+                _ => match server_list::fetch() {
+                    Ok(servers) => {
+                        let servers = Arc::new(servers);
+                        *cache = Some(CachedList {
+                            fetched: Instant::now(),
+                            servers: servers.clone(),
+                        });
+                        servers
+                    }
+                    Err(err) => match cache.as_ref() {
+                        Some(stale) => stale.servers.clone(),
+                        None => return Err(err),
+                    },
+                },
+            }
+        };
+        Ok(server_list::search(
+            &servers,
+            query,
+            server_list::RESULT_LIMIT,
+        ))
     }
 
     /// A logo picked by hand, as a `data:` URL for [`Profile::server_icon`].

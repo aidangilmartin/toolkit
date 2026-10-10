@@ -9,7 +9,7 @@ use std::time::Duration;
 use loadout_core::launch;
 use loadout_core::model::{
     AfterLaunch, AppConfig, AppStatus, ApplyPlan, ApplyResult, CapturedSettings, FolderTarget,
-    Pack, Profile, ProfileFileKind, Progress, ServerInfo, Snapshot,
+    Pack, Profile, ProfileFileKind, Progress, ServerInfo, ServerSearch, Snapshot,
 };
 use loadout_core::schema::GraphicsSchema;
 use loadout_core::Loadout;
@@ -122,6 +122,11 @@ pub async fn delete_profile(state: State<'_, AppState>, id: String) -> CmdResult
 #[tauri::command]
 pub async fn lookup_server(state: State<'_, AppState>, address: String) -> CmdResult<ServerInfo> {
     run(&state, move |core| core.lookup_server(&address)).await
+}
+
+#[tauri::command]
+pub async fn search_servers(state: State<'_, AppState>, query: String) -> CmdResult<ServerSearch> {
+    run(&state, move |core| core.search_servers(&query)).await
 }
 
 #[tauri::command]

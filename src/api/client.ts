@@ -11,6 +11,7 @@ import type {
   ProfileFileKind,
   Progress,
   ServerInfo,
+  ServerSearch,
   Snapshot,
 } from "./types";
 
@@ -36,6 +37,8 @@ export interface Api {
 
   /** Name, logo and players for a server address. Goes over the network. */
   lookupServer(address: string): Promise<ServerInfo>;
+  /** Search the FiveM server list. The first search downloads the list. */
+  searchServers(query: string): Promise<ServerSearch>;
   /** A logo picked by hand, as a data: URL. */
   readLogoFile(path: string): Promise<string>;
 

@@ -36,6 +36,8 @@ export type { ProposedFile } from "../bindings/ProposedFile";
 export type { ProposedFileKind } from "../bindings/ProposedFileKind";
 export type { SelectOption } from "../bindings/SelectOption";
 export type { ServerInfo } from "../bindings/ServerInfo";
+export type { ServerListing } from "../bindings/ServerListing";
+export type { ServerSearch } from "../bindings/ServerSearch";
 export type { SettingDef } from "../bindings/SettingDef";
 export type { SettingGroup } from "../bindings/SettingGroup";
 export type { SettingsDrift } from "../bindings/SettingsDrift";

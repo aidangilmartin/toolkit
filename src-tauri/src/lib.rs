@@ -88,6 +88,7 @@ pub fn run() {
             commands::duplicate_profile,
             commands::delete_profile,
             commands::lookup_server,
+            commands::search_servers,
             commands::read_logo_file,
             commands::list_packs,
             commands::import_profile_file,

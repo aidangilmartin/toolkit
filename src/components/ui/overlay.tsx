@@ -31,7 +31,10 @@ export function Modal({
       <RDialog.Portal>
         <RDialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] data-[state=open]:animate-[fade-in_120ms_ease-out]" />
         <RDialog.Content
-          onEscapeKeyDown={(e) => !dismissable && e.preventDefault()}
+          onEscapeKeyDown={(e) => {
+            const target = e.target instanceof Element ? e.target : null;
+            if (!dismissable || target?.closest("[data-captures-escape]")) e.preventDefault();
+          }}
           onPointerDownOutside={(e) => !dismissable && e.preventDefault()}
           className={cn(
             "fixed top-1/2 left-1/2 z-50 flex max-h-[86vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border border-line bg-surface shadow-2xl shadow-black/60 focus:outline-none data-[state=open]:animate-[pop-in_140ms_ease-out]",

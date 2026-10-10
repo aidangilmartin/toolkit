@@ -118,6 +118,35 @@ pub struct ServerInfo {
     pub max_players: Option<u32>,
 }
 
+/// A server from the FiveM server list, as shown in search results.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ServerListing {
+    /// The cfx.re join code: the server joins as `cfx.re/join/<id>`.
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub players: u32,
+    pub max_players: u32,
+    /// The logo on cfx.re's CDN, when the server has one.
+    pub icon_url: Option<String>,
+    pub tags: Vec<String>,
+    pub locale: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ServerSearch {
+    /// The best matches, most relevant first.
+    pub results: Vec<ServerListing>,
+    /// How many servers matched (there may be more than `results`).
+    pub matches: u32,
+    /// How many servers are listed right now.
+    pub total: u32,
+}
+
 /// Files a profile carries itself, uploaded when creating or editing it.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, TS)]
 #[serde(rename_all = "camelCase")]

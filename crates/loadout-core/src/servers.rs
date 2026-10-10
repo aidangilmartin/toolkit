@@ -19,6 +19,16 @@ use crate::launch::normalize_server_address;
 use crate::model::ServerInfo;
 
 pub const CFX_API: &str = "https://frontend.cfx-services.net/api/servers";
+
+/// The cfx.re API to use. `LOADOUT_CFX_API` points it somewhere else, for testing
+/// the desktop app against a local stand-in.
+pub fn cfx_api() -> String {
+    std::env::var("LOADOUT_CFX_API")
+        .ok()
+        .map(|v| v.trim().trim_end_matches('/').to_string())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| CFX_API.to_string())
+}
 pub const DEFAULT_PORT: u16 = 30120;
 /// Biggest logo Loadout keeps. FiveM's own limit is 96×96 PNG, so this is plenty.
 pub const ICON_LIMIT: usize = 512 * 1024;
@@ -32,7 +42,7 @@ pub fn lookup(address: &str) -> Result<ServerInfo> {
         .user_agent("Mozilla/5.0")
         .build()
         .into();
-    lookup_with(&agent, CFX_API, address)
+    lookup_with(&agent, &cfx_api(), address)
 }
 
 fn lookup_with(agent: &Agent, cfx_api: &str, address: &str) -> Result<ServerInfo> {
@@ -45,7 +55,11 @@ fn lookup_with(agent: &Agent, cfx_api: &str, address: &str) -> Result<ServerInfo
     Ok(info)
 }
 
-fn get(agent: &Agent, url: &str, limit: u64) -> std::result::Result<Vec<u8>, ureq::Error> {
+pub(crate) fn get(
+    agent: &Agent,
+    url: &str,
+    limit: u64,
+) -> std::result::Result<Vec<u8>, ureq::Error> {
     let mut response = agent.get(url).call()?;
     response.body_mut().with_config().limit(limit).read_to_vec()
 }
@@ -166,6 +180,11 @@ fn as_u32(value: &Value) -> Option<u32> {
 
 /// Server names carry FiveM colour codes (`^1Red ^7White`). Strip them and tidy up.
 pub fn clean_name(raw: &str) -> Option<String> {
+    clean_text(raw, NAME_LIMIT)
+}
+
+/// [`clean_name`] for any server text: no colour codes, one line, at most `limit` characters.
+pub fn clean_text(raw: &str, limit: usize) -> Option<String> {
     let mut out = String::with_capacity(raw.len());
     let mut chars = raw.chars().peekable();
     while let Some(c) = chars.next() {
@@ -180,7 +199,7 @@ pub fn clean_name(raw: &str) -> Option<String> {
         out.push(if c.is_control() { ' ' } else { c });
     }
     let name = out.split_whitespace().collect::<Vec<_>>().join(" ");
-    let name: String = name.chars().take(NAME_LIMIT).collect();
+    let name: String = name.chars().take(limit).collect();
     (!name.is_empty()).then_some(name)
 }
 
@@ -240,11 +259,10 @@ pub fn read_logo_file(path: &Path) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::io::{BufRead, BufReader, Write};
     use std::net::TcpListener;
-    use std::thread;
 
     use super::*;
+    use crate::test_http::{agent as test_agent, serve, Reply};
 
     const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDRfake";
 
@@ -313,43 +331,6 @@ mod tests {
         assert_eq!(parsed.icon, None, "non-image icons are dropped");
     }
 
-    /// A tiny HTTP server answering fixed paths, for testing the real network path.
-    fn serve(routes: HashMap<String, (u16, Vec<u8>)>) -> u16 {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = listener.local_addr().unwrap().port();
-        thread::spawn(move || {
-            for stream in listener.incoming().flatten() {
-                let mut reader = BufReader::new(stream.try_clone().unwrap());
-                let mut request_line = String::new();
-                reader.read_line(&mut request_line).unwrap();
-                loop {
-                    let mut line = String::new();
-                    if reader.read_line(&mut line).unwrap() == 0 || line == "\r\n" {
-                        break;
-                    }
-                }
-                let path = request_line.split(' ').nth(1).unwrap_or("/").to_string();
-                let (status, body) = routes.get(&path).cloned().unwrap_or((404, b"{}".to_vec()));
-                let mut stream = stream;
-                let head = format!(
-                    "HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                    body.len()
-                );
-                let _ = stream.write_all(head.as_bytes());
-                let _ = stream.write_all(&body);
-            }
-        });
-        port
-    }
-
-    fn test_agent() -> Agent {
-        Agent::config_builder()
-            .timeout_global(Some(Duration::from_secs(5)))
-            .proxy(None)
-            .build()
-            .into()
-    }
-
     #[test]
     fn looks_up_a_server_directly() {
         let info = format!(
@@ -357,10 +338,10 @@ mod tests {
             STANDARD.encode(PNG)
         );
         let port = serve(HashMap::from([
-            ("/info.json".to_string(), (200, info.into_bytes())),
+            ("/info.json".to_string(), Reply::ok(info)),
             (
                 "/dynamic.json".to_string(),
-                (200, br#"{"clients":3,"sv_maxclients":"10"}"#.to_vec()),
+                Reply::ok(&br#"{"clients":3,"sv_maxclients":"10"}"#[..]),
             ),
         ]));
         let found =
@@ -376,14 +357,11 @@ mod tests {
         let port = serve(HashMap::from([
             (
                 "/api/servers/single/abc123".to_string(),
-                (
-                    200,
-                    br#"{"Data":{"hostname":"^2Arena","iconVersion":77,"clients":5}}"#.to_vec(),
-                ),
+                Reply::ok(&br#"{"Data":{"hostname":"^2Arena","iconVersion":77,"clients":5}}"#[..]),
             ),
             (
                 "/api/servers/icon/abc123/77.png".to_string(),
-                (200, PNG.to_vec()),
+                Reply::ok(PNG),
             ),
         ]));
         let api = format!("http://127.0.0.1:{port}/api/servers");

@@ -86,14 +86,17 @@ try {
   await nav("Settings");
   await shot("settings");
 
-  // A new profile: look the server up, then upload sounds and mods.
+  // A new profile: search the server list and pick a server, then upload sounds and mods.
   await open();
   await page.getByRole("button", { name: "New profile" }).first().click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Server address").fill("play.vinewood-rp.com:30120");
-  await dialog.getByRole("button", { name: "Look up" }).click();
-  await dialog.getByText(/^Found /).waitFor();
+  await dialog.getByText("Most popular servers").waitFor();
+  await dialog.getByLabel("Search servers").fill("roleplay");
+  await dialog.getByText(/servers match/).waitFor();
   await shot("new-profile");
+  await dialog.getByRole("option", { name: /Vinewood Roleplay/ }).click();
+  await dialog.getByText("Play joins this server after applying the profile.").waitFor();
+  await shot("new-profile-picked");
   await dialog.getByRole("button", { name: "Upload" }).first().click();
   await dialog.getByText("WEAPONS_PLAYER.rpf ·").waitFor();
   await dialog.getByRole("button", { name: "Add mods" }).click();

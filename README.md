@@ -11,9 +11,10 @@ mods. Press Play and Loadout switches everything over, then joins the server. No
 
 - **Profiles**: graphics and display settings, GTA's in-game settings (FOV, brightness, HUD,
   volumes…), your own sounds and mods, and the server to join, all switched together.
-- **Server and logo**: enter the server's `IP:port` or `cfx.re/join` code. Loadout looks up its
-  name and logo and shows them on the profile. **Play** applies the profile, then joins the
-  server through FiveM's own `fivem://connect/…` link.
+- **Find your server**: search the FiveM server list by name or tag, or paste the server's
+  `IP:port` or `cfx.re/join` link. Loadout fills in its name and logo and shows them on the
+  profile. **Play** applies the profile, then joins the server through FiveM's own
+  `fivem://connect/…` link.
 - **Your own sounds and mods**: upload a `WEAPONS_PLAYER.rpf` and a `RESIDENT.rpf` (they replace
   the game's in `GTA V\x64\audio\sfx`) and any `.rpf` mods for FiveM's `mods` folder, per
   profile. Loadout keeps a copy, so only the profile you're playing has its files installed.
@@ -28,9 +29,9 @@ mods. Press Play and Loadout switches everything over, then joins the server. No
 - **Won't touch a running game**: FiveM reads its settings at start-up and rewrites them on exit,
   so Loadout waits for the game to close, or closes it for you if you ask.
 
-| Create a profile                                   | Sounds & mods                                          |
+| Find your server                                   | Sounds & mods                                          |
 | -------------------------------------------------- | ------------------------------------------------------ |
-| ![New profile](docs/screenshots/new-profile.png)   | ![Sounds and mods](docs/screenshots/profile-files.png) |
+| ![Server search](docs/screenshots/new-profile.png) | ![Sounds and mods](docs/screenshots/profile-files.png) |
 | **Edit graphics**                                  | **Preview before applying**                            |
 | ![Graphics](docs/screenshots/profile-graphics.png) | ![Apply preview](docs/screenshots/apply-preview.png)   |
 
@@ -58,13 +59,14 @@ Then:
    `Documents\Rockstar Games\GTA V`) and backs up your current settings. Create a profile from
    your current settings, or start from the _Max FPS_ / _Ultra_ presets.
 2. **New profile**:
-   - _Server_ (optional): paste the server's `IP:port` or `cfx.re/join/…` code and press
-     **Look up**. The name and logo fill in by themselves. If the server is offline, you can
-     still save it and pick a logo yourself.
+   - _Server_ (optional): search the FiveM server list (the most popular servers show up
+     straight away) and pick one, or paste the server's `IP:port` or `cfx.re/join/…` link.
+     The name and logo fill in by themselves. If the server is offline, you can still save it
+     and pick a logo yourself.
    - _Name_ and colour, then where the graphics start from: your current settings or a preset.
    - _Sounds & mods_ (optional): upload your `WEAPONS_PLAYER.rpf`, `RESIDENT.rpf` and any mods.
 3. **Edit a profile** (click it):
-   - _Server_: change the address, look it up again or change the logo.
+   - _Server_: change the server (search again), look it up again or change the logo.
    - _Graphics_: tick the settings this profile controls. Anything unticked is left alone.
    - _Sounds & mods_: upload, replace or remove files.
    - _In-game settings_: pick values from `fivem.cfg`.
@@ -97,6 +99,9 @@ its settings.
 - **Only `.rpf` files**: sounds are single `.rpf` files, and mods are `.rpf` files or a `.zip` of
   them. Executables, `.asi` loaders, ScriptHookV and `dinput8.dll` are refused. Loadout handles
   settings and cosmetic files only.
+- **Server search** uses the same server list as FiveM's own browser. Loadout downloads it on
+  the first search (a few seconds) and keeps it for ten minutes. Private and unlisted servers
+  don't show up; paste their `IP:port` or `cfx.re/join` link instead.
 - **Server logos** come from the server itself (`/info.json`) or, for `cfx.re/join` codes, from
   the FiveM server list. Servers that hide their info or are offline can't be looked up; pick a
   logo by hand for those.
@@ -124,8 +129,10 @@ This checklist covers what automated tests can't reach:
    vanilla again and the mod is loaded.
 5. **Backups → Restore vanilla**. The GTA V `x64\audio\sfx` files should be the originals
    (Steam/Rockstar "verify files" should find nothing to fix).
-6. Look up a server that's offline: the error should say so, and choosing a logo by hand works.
-7. For the settings marked _verify_, set each option in-game and compare it with
+6. New profile → search for a server you know by name: it should show up with its logo and
+   player count, and picking it fills in the name and logo.
+7. Look up a server that's offline: the error should say so, and choosing a logo by hand works.
+8. For the settings marked _verify_, set each option in-game and compare it with
    `gta5_settings.xml`.
 
 ## Development
@@ -135,8 +142,8 @@ Tauri 2 app: a Rust backend in two crates and a React + TypeScript frontend.
 ```
 crates/loadout-core/   all file logic (no UI): settings.xml patcher, schema & presets, fivem.cfg,
                        sound/mod uploads, the apply engine (plan → journal → execute →
-                       rollback), backups, path detection, server lookup. Fully tested against
-                       fake game folders.
+                       rollback), backups, path detection, server lookup and server-list
+                       search. Fully tested against fake game folders.
 src-tauri/             the desktop shell: Tauri commands over loadout-core
 src/                   React UI. src/bindings is generated from Rust (ts-rs);
                        src/mock is an in-memory backend for running the UI in a browser
@@ -157,6 +164,8 @@ pnpm build && pnpm screenshots   # re-render the screenshots (needs Chromium)
 
 To try the real app off Windows, point it at a fake folder layout:
 `LOADOUT_SYSTEM_ROOT=/path/with/Local,Roaming,Documents LOADOUT_DATA_DIR=/tmp/loadout pnpm tauri dev`.
+`LOADOUT_CFX_API=http://127.0.0.1:…/api/servers` points server lookups and the server list at a
+local stand-in for cfx.re.
 
 The mock backend accepts `?setup=1` (first-run wizard), `?running=1` (FiveM running) and
 `?drift=1` (in-game changes) in the URL.

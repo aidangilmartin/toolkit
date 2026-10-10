@@ -18,6 +18,8 @@ import type {
   ProfileFileKind,
   Progress,
   ServerInfo,
+  ServerListing,
+  ServerSearch,
   SettingsFilePlan,
   Snapshot,
 } from "../api/types";
@@ -64,6 +66,201 @@ const knownServers: Record<string, Omit<ServerInfo, "address">> = {
     maxPlayers: 256,
   },
 };
+
+/** A stand-in for the FiveM server list (the real one has tens of thousands). */
+const PALETTE = [
+  ["#ef4444", "#7c2d12"],
+  ["#3b82f6", "#1e1b4b"],
+  ["#22c55e", "#064e3b"],
+  ["#a855f7", "#312e81"],
+  ["#f59e0b", "#7c2d12"],
+  ["#ec4899", "#4a044e"],
+  ["#14b8a6", "#134e4a"],
+];
+const LISTED: [string, string, string, number, number, string[]][] = [
+  [
+    "q4x9za",
+    "Arena PvP EU",
+    "Free-for-all and team deathmatch, no wait times",
+    87,
+    128,
+    ["pvp", "arena", "deathmatch"],
+  ],
+  [
+    "lsl8rp",
+    "Los Santos Life RP",
+    "Serious roleplay · whitelisted jobs · custom economy",
+    212,
+    256,
+    ["roleplay", "serious", "economy"],
+  ],
+  [
+    "vrp3ka",
+    "Vinewood Roleplay",
+    "Hollywood dreams in Los Santos. New players welcome",
+    164,
+    200,
+    ["roleplay", "casual", "new players"],
+  ],
+  [
+    "nfx92a",
+    "NightFall RP | Whitelisted",
+    "Gang and police roleplay with custom cars",
+    301,
+    300,
+    ["roleplay", "gangs", "police"],
+  ],
+  [
+    "pvpk1n",
+    "KOTH Hill Battles",
+    "King of the hill, three teams, one hill",
+    140,
+    160,
+    ["pvp", "koth", "teams"],
+  ],
+  [
+    "drf7tt",
+    "Tokyo Drift Club",
+    "Drift tracks, tuning and car meets",
+    46,
+    64,
+    ["drift", "cars", "racing"],
+  ],
+  [
+    "rcx5ln",
+    "Redline Racing League",
+    "Ranked street races every hour",
+    58,
+    96,
+    ["racing", "cars", "ranked"],
+  ],
+  [
+    "ems4us",
+    "Sandy Shores Roleplay",
+    "Small-town roleplay in Blaine County",
+    38,
+    64,
+    ["roleplay", "rural"],
+  ],
+  [
+    "zmb0ne",
+    "Undead Zone",
+    "Zombie survival, loot and bases",
+    72,
+    128,
+    ["survival", "zombies", "pvp"],
+  ],
+  [
+    "frz8gg",
+    "FreeRoam Plus",
+    "Freeroam with trainers and custom maps",
+    25,
+    48,
+    ["freeroam", "casual"],
+  ],
+  [
+    "cop1rp",
+    "Blue Line RP",
+    "Police and EMS focused roleplay",
+    120,
+    128,
+    ["roleplay", "police", "ems"],
+  ],
+  [
+    "gng6ls",
+    "Grove Street Families RP",
+    "Gang roleplay with a turf system",
+    96,
+    128,
+    ["roleplay", "gangs"],
+  ],
+  ["pdm7cr", "Car Meet Central", "Showcase your build, weekly contests", 31, 64, ["cars", "meets"]],
+  ["box2pv", "Box PvP 1v1", "1v1 arenas and gun game", 54, 64, ["pvp", "1v1", "gungame"]],
+  [
+    "hst5rp",
+    "Heist City RP",
+    "Heists, crews and a big economy",
+    188,
+    256,
+    ["roleplay", "heists", "economy"],
+  ],
+  ["eu4srp", "Europa Roleplay [EU]", "European roleplay community", 143, 200, ["roleplay", "eu"]],
+  ["de9rpx", "Deutsch RP", "Deutscher Roleplay-Server", 110, 128, ["roleplay", "german"]],
+  ["fr3rpz", "France Roleplay", "Serveur roleplay francophone", 97, 128, ["roleplay", "french"]],
+  [
+    "sur8vv",
+    "Wasteland Survival",
+    "Hardcore survival with base building",
+    19,
+    64,
+    ["survival", "hardcore"],
+  ],
+  [
+    "trk4gg",
+    "Trucking Simulator LS",
+    "Haul cargo across San Andreas",
+    12,
+    32,
+    ["jobs", "trucking"],
+  ],
+];
+const listed: ServerListing[] = LISTED.map(
+  ([id, name, description, players, maxPlayers, tags], i) => {
+    const [from, to] = PALETTE[i % PALETTE.length];
+    const letters = name
+      .replace(/[^A-Za-z ]/g, "")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
+    return {
+      id,
+      name,
+      description,
+      players,
+      maxPlayers,
+      iconUrl: i % 6 === 5 ? null : logo(from, to, letters),
+      tags,
+      locale: tags.includes("german") ? "de-DE" : tags.includes("french") ? "fr-FR" : "en-US",
+    };
+  },
+);
+let listLoaded = false;
+
+/** Same ranking as the Rust side (server_list::search). */
+function searchListed(input: string): ServerSearch {
+  const query = input
+    .trim()
+    .toLowerCase()
+    .replace(/^(https?:\/\/|fivem:\/\/connect\/)/, "")
+    .replace(/^cfx\.re\/join\//, "")
+    .replace(/\/+$/, "");
+  const words = query.split(/\s+/).filter(Boolean);
+  const ranked = listed
+    .map((server) => {
+      const name = server.name.toLowerCase();
+      const hay = [server.name, server.description, server.tags.join(" "), server.locale, server.id]
+        .join(" ")
+        .toLowerCase();
+      let rank: number;
+      if (!words.length) rank = 0;
+      else if (server.id === query) rank = 4;
+      else if (!words.every((w) => hay.includes(w))) return null;
+      else if (name.startsWith(query)) rank = 3;
+      else if (name.includes(query)) rank = 2;
+      else rank = 1;
+      return { rank, server };
+    })
+    .filter((r): r is { rank: number; server: ServerListing } => r !== null)
+    .sort((a, b) => b.rank - a.rank || b.server.players - a.server.players);
+  return {
+    results: ranked.slice(0, 50).map((r) => r.server),
+    matches: ranked.length,
+    total: 31_482,
+  };
+}
 
 const SOUND_DEST: Record<Exclude<ProfileFileKind, "mod">, string> = {
   weaponSounds: "x64/audio/sfx/WEAPONS_PLAYER.rpf",
@@ -550,6 +747,11 @@ export const mockApi: Api & {
     }
     const known = knownServers[address.toLowerCase()];
     if (known) return copy({ address, ...known });
+    const listing = listed.find((s) => `cfx.re/join/${s.id}` === address.toLowerCase());
+    if (listing) {
+      const { name, iconUrl, players, maxPlayers } = listing;
+      return { address, name, icon: iconUrl, players, maxPlayers };
+    }
     const words = ["Vinewood", "Paleto", "Sandy", "Vespucci", "Blaine", "Mirror Park"];
     const pick = words[[...address].reduce((sum, c) => sum + c.charCodeAt(0), 0) % words.length];
     return {
@@ -559,6 +761,14 @@ export const mockApi: Api & {
       players: 34,
       maxPlayers: 64,
     };
+  },
+  async searchServers(query) {
+    await wait(listLoaded ? 150 : 900);
+    if (query.includes("offline!")) {
+      throw "Couldn't load the FiveM server list. Check your connection, or paste the server's IP or cfx.re link instead.";
+    }
+    listLoaded = true;
+    return copy(searchListed(query));
   },
   async readLogoFile() {
     await wait(120);

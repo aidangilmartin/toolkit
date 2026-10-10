@@ -1,8 +1,9 @@
 import { Server } from "lucide-react";
+import { useState } from "react";
 
 import { cn } from "../lib/cn";
 
-/** A server's logo, or a tile in the profile's colour when there isn't one. */
+/** A server's logo, or a tile in the profile's colour when there isn't one (or it won't load). */
 export function ServerLogo({
   icon,
   color,
@@ -12,12 +13,15 @@ export function ServerLogo({
   color: string;
   className?: string;
 }) {
-  if (icon) {
+  const [failed, setFailed] = useState<string | null>(null);
+  if (icon && failed !== icon) {
     return (
       <img
         src={icon}
         alt=""
+        loading="lazy"
         draggable={false}
+        onError={() => setFailed(icon)}
         className={cn("size-10 shrink-0 rounded-xl bg-surface-3 object-cover", className)}
       />
     );

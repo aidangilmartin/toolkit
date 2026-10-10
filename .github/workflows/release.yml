@@ -4,7 +4,7 @@ name: Release
 # app version in src-tauri/tauri.conf.json, whenever that version has no release yet.
 # It runs when:
 # - a commit lands on the default branch (so bumping the version releases it),
-# - a tag like v0.2.0 is pushed (it must match the app version), or
+# - a tag like v0.3.0 is pushed (it must match the app version), or
 # - it's started by hand from the Actions tab (Release → Run workflow).
 on:
   push:
@@ -13,9 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to create and release, e.g. v0.2.0
+        description: Tag to create and release, e.g. v0.3.0
         required: true
-        default: v0.2.0
+        default: v0.3.0
 
 permissions:
   contents: write
@@ -101,9 +101,9 @@ jobs:
 
             ## What's new
 
-            - **Each profile has its server.** Enter the server's IP:port or cfx.re/join code when you create or edit a profile. Loadout looks up the server's name and logo and shows them on the profile, and **Play** applies the profile and joins the server.
-            - **Upload your own sounds and mods per profile**: a `WEAPONS_PLAYER.rpf`, a `RESIDENT.rpf` and any `.rpf` mods for FiveM's mods folder. Replace or remove them any time in the profile's **Sounds & mods** tab.
-            - The Packs page and Quick Play are gone: everything lives on the profile now. Servers saved in 0.1 move onto their profile automatically, and packs from the old library keep working.
+            - **Search the FiveM server list** when you create or edit a profile. The most popular servers show up straight away; type a name or tag (roleplay, drift, pvp…) and pick one. Its name and logo are filled in, and **Play** joins it.
+            - You can still paste a server's IP:port or cfx.re link, for private and unlisted servers.
+            - Each profile also has its own uploaded sounds (`WEAPONS_PLAYER.rpf`, `RESIDENT.rpf`) and `.rpf` mods, in the profile's **Sounds & mods** tab.
 
             ## What it does
 
@@ -116,6 +116,7 @@ jobs:
             - Close FiveM before switching. Loadout waits for it, or closes it if you ask.
             - Sound files go into the GTA V folder. If GTA V is installed under Program Files, run Loadout as administrator for those. They also affect Story Mode and GTA Online, so restore vanilla before playing Online.
             - Servers using Pure Mode may refuse modified files.
+            - Server search downloads FiveM's server list on first use, which takes a few seconds.
             - Servers that are offline or hide their info can't be looked up. Pick a logo by hand for those.
 
             ## Known limitations
