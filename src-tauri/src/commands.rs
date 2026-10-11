@@ -2,7 +2,7 @@
 //! Every command runs the blocking core call on a worker thread so the UI never
 //! freezes, and errors are turned into player-friendly strings.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -229,18 +229,36 @@ fn after_launch(app: &AppHandle, core: &Loadout) {
     }
 }
 
+/// FiveM refuses to start when Loadout launches it directly, so on Windows the
+/// desktop's Explorer starts it instead (see `shell.rs`).
+async fn open_through_shell(target: String, working_dir: Option<PathBuf>) -> CmdResult<()> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::shell::open(&target, working_dir.as_deref())
+    })
+    .await
+    .map_err(|e| format!("Internal error: {e}"))?
+}
+
 #[tauri::command]
 pub async fn launch_fivem(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
     let exe = run(&state, |core| Ok(core.paths()?.fivem_exe)).await?;
     let exe = exe
         .ok_or_else(|| "FiveM.exe wasn't found. Check the FiveM folder in Settings.".to_string())?;
-    let mut command = std::process::Command::new(&exe);
-    if let Some(dir) = exe.parent() {
-        command.current_dir(dir);
+    if cfg!(windows) {
+        open_through_shell(
+            exe.display().to_string(),
+            exe.parent().map(Path::to_path_buf),
+        )
+        .await?;
+    } else {
+        let mut command = std::process::Command::new(&exe);
+        if let Some(dir) = exe.parent() {
+            command.current_dir(dir);
+        }
+        command
+            .spawn()
+            .map_err(|e| format!("Couldn't start FiveM: {e}"))?;
     }
-    command
-        .spawn()
-        .map_err(|e| format!("Couldn't start FiveM: {e}"))?;
     after_launch(&app, &state.core);
     Ok(())
 }
@@ -252,9 +270,14 @@ pub async fn connect_server(
     address: String,
 ) -> CmdResult<()> {
     let address = launch::normalize_server_address(&address)?;
-    app.opener()
-        .open_url(launch::connect_url(&address), None::<&str>)
-        .map_err(|e| format!("Couldn't open FiveM ({e}). Is FiveM installed?"))?;
+    let url = launch::connect_url(&address);
+    if cfg!(windows) {
+        open_through_shell(url, None).await?;
+    } else {
+        app.opener()
+            .open_url(url, None::<&str>)
+            .map_err(|e| format!("Couldn't open FiveM ({e}). Is FiveM installed?"))?;
+    }
     after_launch(&app, &state.core);
     Ok(())
 }

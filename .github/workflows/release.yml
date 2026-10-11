@@ -4,7 +4,7 @@ name: Release
 # app version in src-tauri/tauri.conf.json, whenever that version has no release yet.
 # It runs when:
 # - a commit lands on the default branch (so bumping the version releases it),
-# - a tag like v0.3.0 is pushed (it must match the app version), or
+# - a tag like v0.3.1 is pushed (it must match the app version), or
 # - it's started by hand from the Actions tab (Release → Run workflow).
 on:
   push:
@@ -13,9 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to create and release, e.g. v0.3.0
+        description: Tag to create and release, e.g. v0.3.1
         required: true
-        default: v0.3.0
+        default: v0.3.1
 
 permissions:
   contents: write
@@ -101,6 +101,7 @@ jobs:
 
             ## What's new
 
+            - **Fixed:** Play no longer makes FiveM complain that it "should be launched directly from the shell or a web browser". Loadout now asks Windows Explorer to start FiveM, just like a double-click, so FiveM also starts normally when Loadout runs as administrator.
             - **Search the FiveM server list** when you create or edit a profile. The most popular servers show up straight away; type a name or tag (roleplay, drift, pvp…) and pick one. Its name and logo are filled in, and **Play** joins it.
             - You can still paste a server's IP:port or cfx.re link, for private and unlisted servers.
             - Each profile also has its own uploaded sounds (`WEAPONS_PLAYER.rpf`, `RESIDENT.rpf`) and `.rpf` mods, in the profile's **Sounds & mods** tab.

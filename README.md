@@ -51,7 +51,9 @@ Then:
   installer downloads it. The portable exe needs it to be there already.
 - **GTA V installed under `Program Files`?** Windows only lets administrators change files
   there. Sound files that replace game audio need _Run as administrator_ in that case.
-  Everything else works without it.
+  Everything else works without it. FiveM itself still starts normally (FiveM refuses to run
+  as administrator), because Loadout asks Windows Explorer to start it, just like a
+  double-click.
 
 ## How to use it
 

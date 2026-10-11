@@ -1,4 +1,5 @@
 mod commands;
+mod shell;
 
 use std::path::PathBuf;
 use std::sync::Arc;
