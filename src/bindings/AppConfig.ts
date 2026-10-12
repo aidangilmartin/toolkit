@@ -6,4 +6,8 @@ export type AppConfig = { paths: PathOverrides, afterLaunch: AfterLaunch,
 /**
  * Show the "these files will change" preview before applying.
  */
-confirmFileChanges: boolean, setupComplete: boolean, };
+confirmFileChanges: boolean, setupComplete: boolean, 
+/**
+ * Look for a newer Loadout when the app starts.
+ */
+checkForUpdates: boolean, };

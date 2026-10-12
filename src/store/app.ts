@@ -2,7 +2,15 @@ import { toast } from "sonner";
 import { create } from "zustand";
 
 import { api, errorMessage } from "../api";
-import type { AppConfig, AppStatus, GraphicsSchema, Pack, Profile, Snapshot } from "../api/types";
+import type {
+  AppConfig,
+  AppStatus,
+  GraphicsSchema,
+  Pack,
+  Profile,
+  Snapshot,
+  UpdateInfo,
+} from "../api/types";
 
 export type View =
   { name: "home" } | { name: "profile"; id: string } | { name: "backups" } | { name: "settings" };
@@ -35,6 +43,9 @@ interface AppStore {
   dirty: boolean;
   pendingView: View | null;
   apply: ApplyRequest | null;
+  /** A newer Loadout, once found. */
+  update: UpdateInfo | null;
+  updateOpen: boolean;
 
   init(): Promise<void>;
   refresh(...parts: Part[]): Promise<void>;
@@ -45,6 +56,9 @@ interface AppStore {
   requestApply(profileId: string | null, then?: AfterApply): void;
   closeApply(): void;
   saveConfig(config: AppConfig): Promise<void>;
+  /** Manual checks say so when there's nothing new; automatic ones stay quiet. */
+  checkForUpdate(manual: boolean): Promise<void>;
+  setUpdateOpen(open: boolean): void;
 }
 
 const loaders: Record<Part, () => Promise<Partial<AppStore>>> = {
@@ -74,6 +88,8 @@ export const useApp = create<AppStore>((set, get) => ({
   dirty: false,
   pendingView: null,
   apply: null,
+  update: null,
+  updateOpen: false,
 
   async init() {
     try {
@@ -129,6 +145,21 @@ export const useApp = create<AppStore>((set, get) => ({
 
   closeApply() {
     set({ apply: null });
+  },
+
+  async checkForUpdate(manual) {
+    try {
+      const update = await api.checkForUpdate();
+      set({ update, updateOpen: update !== null });
+      if (!update && manual) toast.success("You're on the latest version of Loadout.");
+    } catch (error) {
+      if (manual) toast.error(errorMessage(error));
+      else console.warn("update check failed", error);
+    }
+  },
+
+  setUpdateOpen(open) {
+    set({ updateOpen: open });
   },
 
   async saveConfig(config) {

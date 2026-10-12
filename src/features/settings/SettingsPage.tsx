@@ -1,4 +1,5 @@
-import { FolderOpen, ScrollText } from "lucide-react";
+import { FolderOpen, RefreshCw, ScrollText } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { api, errorMessage } from "../../api";
@@ -21,6 +22,8 @@ export function SettingsPage() {
   const config = useApp((s) => s.config);
   const status = useApp((s) => s.status);
   const saveConfig = useApp((s) => s.saveConfig);
+  const checkForUpdate = useApp((s) => s.checkForUpdate);
+  const [checking, setChecking] = useState(false);
   if (!config) return null;
 
   const open = (target: "data" | "logs") =>
@@ -75,6 +78,44 @@ export function SettingsPage() {
               onCheckedChange={(on) => void saveConfig({ ...config, confirmFileChanges: on })}
               label="Confirm file changes"
             />
+          </Card>
+        </section>
+
+        <section>
+          <SectionTitle title="Updates" />
+          <Card className="divide-y divide-line">
+            <div className="flex items-center gap-4 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Loadout {__APP_VERSION__}</p>
+                <p className="text-xs text-muted">
+                  New versions install with one click and keep your profiles, sounds and mods.
+                </p>
+              </div>
+              <Button
+                icon={<RefreshCw className="size-4" />}
+                loading={checking}
+                onClick={async () => {
+                  setChecking(true);
+                  await checkForUpdate(true);
+                  setChecking(false);
+                }}
+              >
+                Check for updates
+              </Button>
+            </div>
+            <div className="flex items-center gap-4 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Check for updates when Loadout starts</p>
+                <p className="text-xs text-muted">
+                  Asks GitHub for the latest release. Nothing is installed without your OK.
+                </p>
+              </div>
+              <Switch
+                checked={config.checkForUpdates}
+                onCheckedChange={(on) => void saveConfig({ ...config, checkForUpdates: on })}
+                label="Check for updates when Loadout starts"
+              />
+            </div>
           </Card>
         </section>
 

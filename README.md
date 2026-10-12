@@ -28,6 +28,8 @@ mods. Press Play and Loadout switches everything over, then joins the server. No
   profile. If a FiveM update overwrote one of your files, it offers to re-apply.
 - **Won't touch a running game**: FiveM reads its settings at start-up and rewrites them on exit,
   so Loadout waits for the game to close, or closes it for you if you ask.
+- **Updates itself**: when a new version is out, Loadout says what's new and installs it with one
+  click, then reopens. Your profiles, sounds and mods are kept.
 
 | Find your server                                   | Sounds & mods                                          |
 | -------------------------------------------------- | ------------------------------------------------------ |
@@ -107,6 +109,10 @@ its settings.
 - **Server logos** come from the server itself (`/info.json`) or, for `cfx.re/join` codes, from
   the FiveM server list. Servers that hide their info or are offline can't be looked up; pick a
   logo by hand for those.
+- **Updates** come from this repository's releases. Each download is checked against the SHA-256
+  checksum GitHub publishes for it before anything is installed. The installed version runs the
+  new installer with just a progress bar; the portable exe swaps itself for the new one. Turn the
+  check at start-up off in Settings → Updates.
 - **Coming from 0.1?** Saved servers move onto the profile they were linked to, and packs from
   the old pack library keep working in the profiles that used them. You can remove them in
   _Sounds & mods_.

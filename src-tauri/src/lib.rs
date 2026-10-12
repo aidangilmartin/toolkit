@@ -33,7 +33,25 @@ fn system_dirs() -> SystemDirs {
     }
 }
 
+/// After a portable update, the new exe is started with `--after-update <pid>`:
+/// wait for the old one to close before starting (single-instance would hand
+/// over to it otherwise), then tidy up what the update left behind.
+fn finish_update() {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--after-update" {
+            if let Some(pid) = args.next().and_then(|p| p.parse().ok()) {
+                loadout_core::process::wait_for_exit(pid, std::time::Duration::from_secs(20));
+            }
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        loadout_core::update::clean_up(&exe, &commands::update_download_dir());
+    }
+}
+
 pub fn run() {
+    finish_update();
     let data_dir = data_dir();
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -71,6 +89,7 @@ pub fn run() {
             log::info!("Loadout started, data in {}", data_dir.display());
             app.manage(AppState {
                 core: Arc::new(core),
+                update: Default::default(),
             });
             Ok(())
         })
@@ -103,6 +122,9 @@ pub fn run() {
             commands::launch_fivem,
             commands::connect_server,
             commands::open_folder,
+            commands::check_for_update,
+            commands::install_update,
+            commands::open_release_page,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Loadout");

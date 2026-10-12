@@ -3,26 +3,31 @@
 //! freezes, and errors are turned into player-friendly strings.
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use loadout_core::launch;
 use loadout_core::model::{
     AfterLaunch, AppConfig, AppStatus, ApplyPlan, ApplyResult, CapturedSettings, FolderTarget,
-    Pack, Profile, ProfileFileKind, Progress, ServerInfo, ServerSearch, Snapshot,
+    InstallKind, Pack, Profile, ProfileFileKind, Progress, ProgressStage, ServerInfo, ServerSearch,
+    Snapshot, UpdateInfo,
 };
 use loadout_core::schema::GraphicsSchema;
+use loadout_core::update::{self, Release};
 use loadout_core::Loadout;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 pub struct AppState {
     pub core: Arc<Loadout>,
+    /// The newer release found by the last update check.
+    pub update: Mutex<Option<Release>>,
 }
 
 type CmdResult<T> = Result<T, String>;
 
 const PROGRESS_EVENT: &str = "loadout://progress";
+const UPDATE_PROGRESS_EVENT: &str = "loadout://update-progress";
 
 async fn run<T, F>(state: &State<'_, AppState>, f: F) -> CmdResult<T>
 where
@@ -309,4 +314,146 @@ pub async fn open_folder(
     app.opener()
         .open_path(path.display().to_string(), None::<&str>)
         .map_err(|e| format!("Couldn't open the folder: {e}"))
+}
+
+// ---- Updates -------------------------------------------------------------------
+
+/// The NSIS installer leaves `uninstall.exe` next to the app; the portable exe
+/// has nothing next to it.
+fn install_kind() -> InstallKind {
+    let installed = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join("uninstall.exe").is_file()))
+        .unwrap_or(false);
+    if installed {
+        InstallKind::Installer
+    } else {
+        InstallKind::Portable
+    }
+}
+
+/// Where downloaded installers go (cleaned up on the next start).
+pub fn update_download_dir() -> PathBuf {
+    std::env::temp_dir().join("loadout-update")
+}
+
+#[tauri::command]
+pub async fn check_for_update(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Option<UpdateInfo>> {
+    let current = app.package_info().version.to_string();
+    let release =
+        tauri::async_runtime::spawn_blocking(move || update::check(&current, install_kind()))
+            .await
+            .map_err(|e| format!("Internal error: {e}"))?
+            .map_err(|e| e.user_message())?;
+    let info = release.as_ref().map(|r| r.info.clone());
+    if let Some(info) = &info {
+        log::info!(
+            "update available: {} -> {}",
+            info.current_version,
+            info.version
+        );
+    }
+    *state.update.lock().unwrap_or_else(|p| p.into_inner()) = release;
+    Ok(info)
+}
+
+/// Download the update, check it, install it and restart Loadout. On success
+/// this never returns: Loadout exits so the new version can take its place.
+#[tauri::command]
+pub async fn install_update(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    let release = state
+        .update
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .clone()
+        .ok_or_else(|| "Check for updates first.".to_string())?;
+    let exe = std::env::current_exe().map_err(|e| format!("Couldn't find Loadout's exe: {e}"))?;
+    let dest = match release.info.kind {
+        InstallKind::Installer => update_download_dir().join(&release.asset_name),
+        // Next to the exe, so swapping them is a rename on the same drive.
+        InstallKind::Portable => {
+            let name = exe
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "Loadout.exe".into());
+            exe.with_file_name(format!(".{name}.download"))
+        }
+    };
+
+    let emitter = app.clone();
+    let version = release.info.version.clone();
+    let downloaded = dest.clone();
+    let to_download = release.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        update::download(&to_download, &downloaded, &mut |done, total| {
+            let _ = emitter.emit(
+                UPDATE_PROGRESS_EVENT,
+                Progress {
+                    stage: ProgressStage::Copying,
+                    done,
+                    total,
+                    message: format!("Downloading Loadout {version}"),
+                },
+            );
+        })
+    })
+    .await
+    .map_err(|e| format!("Internal error: {e}"))?
+    .map_err(|e| {
+        log::warn!("update download failed: {e}");
+        e.user_message()
+    })?;
+
+    match release.info.kind {
+        InstallKind::Installer => {
+            // Passive install: a progress bar only. It closes Loadout if it's still
+            // running, keeps the shortcuts (/UPDATE) and starts the new version (/R).
+            std::process::Command::new(&dest)
+                .args(["/P", "/R", "/UPDATE"])
+                .spawn()
+                .map_err(|e| format!("Couldn't start the installer: {e}"))?;
+        }
+        InstallKind::Portable => {
+            update::swap_exe(&exe, &dest).map_err(|e| {
+                let _ = std::fs::remove_file(&dest);
+                format!(
+                    "{} Download the new version from the release page instead.",
+                    e.user_message()
+                )
+            })?;
+            // The new exe waits for this one to exit (single-instance would
+            // otherwise hand over to us and quit).
+            let mut command = std::process::Command::new(&exe);
+            command
+                .arg("--after-update")
+                .arg(std::process::id().to_string());
+            if let Some(dir) = exe.parent() {
+                command.current_dir(dir);
+            }
+            command.spawn().map_err(|e| {
+                format!("Updated, but couldn't restart Loadout ({e}). Start it again yourself.")
+            })?;
+        }
+    }
+    log::info!("installing Loadout {}, exiting", release.info.version);
+    app.exit(0);
+    Ok(())
+}
+
+/// The release page in the browser: the fallback when an update can't install.
+#[tauri::command]
+pub async fn open_release_page(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    let url = state
+        .update
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()
+        .map(|r| r.info.release_url.clone())
+        .unwrap_or_else(|| "https://github.com/aidangilmartin/toolkit/releases/latest".into());
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| format!("Couldn't open the browser: {e}"))
 }

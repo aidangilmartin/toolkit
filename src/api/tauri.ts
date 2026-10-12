@@ -40,6 +40,12 @@ export const tauriApi: Api = {
   restoreSnapshot: (id) => invoke("restore_snapshot", { id }),
   deleteSnapshot: (id) => invoke("delete_snapshot", { id }),
 
+  checkForUpdate: () => invoke("check_for_update"),
+  installUpdate: () => invoke("install_update"),
+  openReleasePage: () => invoke("open_release_page"),
+  onUpdateProgress: async (listener) =>
+    listen<Progress>("loadout://update-progress", (event) => listener(event.payload)),
+
   launchFivem: () => invoke("launch_fivem"),
   connectServer: (address) => invoke("connect_server", { address }),
   openFolder: (target) => invoke("open_folder", { target }),

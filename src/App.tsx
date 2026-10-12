@@ -1,5 +1,5 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Toaster } from "sonner";
 
 import { Sidebar } from "./components/Sidebar";
@@ -11,6 +11,7 @@ import { HomePage } from "./features/home/HomePage";
 import { ProfileEditor } from "./features/profile/ProfileEditor";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { SetupWizard } from "./features/setup/SetupWizard";
+import { UpdateDialog } from "./features/update/UpdateDialog";
 import { useApp } from "./store/app";
 
 export default function App() {
@@ -19,6 +20,8 @@ export default function App() {
   const setupComplete = useApp((s) => s.config?.setupComplete ?? false);
   const view = useApp((s) => s.view);
   const pendingView = useApp((s) => s.pendingView);
+  const autoUpdateCheck = useApp((s) => s.config?.checkForUpdates ?? false);
+  const checkedForUpdate = useRef(false);
 
   useEffect(() => {
     void useApp.getState().init();
@@ -30,6 +33,13 @@ export default function App() {
       window.removeEventListener("focus", onFocus);
     };
   }, []);
+
+  // Once per start, after first-run setup: is there a newer Loadout?
+  useEffect(() => {
+    if (!loaded || !setupComplete || !autoUpdateCheck || checkedForUpdate.current) return;
+    checkedForUpdate.current = true;
+    void useApp.getState().checkForUpdate(false);
+  }, [loaded, setupComplete, autoUpdateCheck]);
 
   if (loadError) {
     return (
@@ -68,6 +78,7 @@ export default function App() {
         <SetupWizard />
       )}
       <ApplyDialog />
+      <UpdateDialog />
       <ConfirmDialog
         open={pendingView !== null}
         onOpenChange={(open) => !open && useApp.getState().cancelNavigation()}

@@ -35,8 +35,14 @@ impl Reply {
 
 /// Serve `routes` on a free local port (404 for anything else) and return the port.
 pub fn serve(routes: HashMap<String, Reply>) -> u16 {
+    serve_with(|_| routes)
+}
+
+/// Like [`serve`], for routes that need to know the port (absolute URLs).
+pub fn serve_with(routes: impl FnOnce(u16) -> HashMap<String, Reply>) -> u16 {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
+    let routes = routes(port);
     thread::spawn(move || {
         for stream in listener.incoming().flatten() {
             let mut reader = BufReader::new(stream.try_clone().unwrap());

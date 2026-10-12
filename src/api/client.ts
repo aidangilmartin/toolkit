@@ -13,6 +13,7 @@ import type {
   ServerInfo,
   ServerSearch,
   Snapshot,
+  UpdateInfo,
 } from "./types";
 
 /** Everything the UI can ask the backend to do. Implemented by Tauri and by an in-memory mock. */
@@ -54,6 +55,13 @@ export interface Api {
   listSnapshots(): Promise<Snapshot[]>;
   restoreSnapshot(id: string): Promise<void>;
   deleteSnapshot(id: string): Promise<void>;
+
+  /** A newer Loadout on GitHub, or null when this one is the latest. */
+  checkForUpdate(): Promise<UpdateInfo | null>;
+  /** Download, check and install the update found by checkForUpdate. Loadout restarts. */
+  installUpdate(): Promise<void>;
+  openReleasePage(): Promise<void>;
+  onUpdateProgress(listener: (progress: Progress) => void): Promise<() => void>;
 
   launchFivem(): Promise<void>;
   connectServer(address: string): Promise<void>;

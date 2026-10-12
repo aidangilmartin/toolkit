@@ -39,6 +39,8 @@ pub struct AppConfig {
     /// Show the "these files will change" preview before applying.
     pub confirm_file_changes: bool,
     pub setup_complete: bool,
+    /// Look for a newer Loadout when the app starts.
+    pub check_for_updates: bool,
 }
 
 impl Default for AppConfig {
@@ -48,8 +50,40 @@ impl Default for AppConfig {
             after_launch: AfterLaunch::KeepOpen,
             confirm_file_changes: true,
             setup_complete: false,
+            check_for_updates: true,
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Updates
+// ---------------------------------------------------------------------------
+
+/// How this copy of Loadout was installed, which decides how it updates.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum InstallKind {
+    /// Installed with the setup exe: updating runs the new installer.
+    Installer,
+    /// The portable exe: updating swaps the exe for the new one.
+    Portable,
+}
+
+/// A newer version of Loadout, from its GitHub releases.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct UpdateInfo {
+    pub version: String,
+    pub current_version: String,
+    /// The release's "What's new" points, as plain text.
+    pub notes: Vec<String>,
+    pub release_url: String,
+    pub published_at: Option<String>,
+    /// Size of the download, in bytes.
+    pub size: u64,
+    pub kind: InstallKind,
 }
 
 // ---------------------------------------------------------------------------

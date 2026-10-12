@@ -20,6 +20,28 @@ pub fn is_game_process(name: &str) -> bool {
         || name.starts_with("gtavlauncher")
 }
 
+/// Wait (up to `timeout`) for the process `pid` to exit. Used after an update,
+/// so the new Loadout starts once the old one has closed. True if it exited.
+pub fn wait_for_exit(pid: u32, timeout: std::time::Duration) -> bool {
+    let pid = sysinfo::Pid::from_u32(pid);
+    let deadline = std::time::Instant::now() + timeout;
+    let mut system = System::new();
+    loop {
+        system.refresh_processes_specifics(
+            ProcessesToUpdate::Some(&[pid]),
+            true,
+            ProcessRefreshKind::nothing(),
+        );
+        if system.process(pid).is_none() {
+            return true;
+        }
+        if std::time::Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+}
+
 pub struct SystemProcesses;
 
 impl SystemProcesses {
@@ -97,6 +119,22 @@ impl ProcessProbe for FakeProcesses {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn waits_for_a_process_to_exit() {
+        let start = std::time::Instant::now();
+        // This test's own process never exits while it waits.
+        assert!(!super::wait_for_exit(
+            std::process::id(),
+            std::time::Duration::from_millis(250)
+        ));
+        assert!(start.elapsed() >= std::time::Duration::from_millis(250));
+        // A process that doesn't exist has already exited.
+        assert!(super::wait_for_exit(
+            u32::MAX - 7,
+            std::time::Duration::from_secs(5)
+        ));
+    }
+
     use super::*;
 
     #[test]

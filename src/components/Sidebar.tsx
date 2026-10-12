@@ -1,4 +1,4 @@
-import { Gamepad2, History, Settings } from "lucide-react";
+import { ArrowUpCircle, Gamepad2, History, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { timeAgo } from "../lib/format";
@@ -19,6 +19,9 @@ export function Sidebar() {
   const status = useApp((s) => s.status);
   const profiles = useApp((s) => s.profiles);
   const active = profiles.find((p) => p.id === status?.activeProfileId);
+  const update = useApp((s) => s.update);
+  const updateOpen = useApp((s) => s.updateOpen);
+  const setUpdateOpen = useApp((s) => s.setUpdateOpen);
   const current = view.name === "profile" ? "home" : view.name;
 
   return (
@@ -50,6 +53,15 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto space-y-3 p-4">
+        {update && !updateOpen && (
+          <button
+            onClick={() => setUpdateOpen(true)}
+            className="flex w-full items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-left text-xs font-medium text-accent transition-colors hover:bg-accent/15"
+          >
+            <ArrowUpCircle className="size-4 shrink-0" />
+            Update to {update.version}
+          </button>
+        )}
         <div className="rounded-xl border border-line bg-surface-2 p-3">
           <p className="text-[11px] font-medium tracking-wider text-subtle uppercase">Active</p>
           {active ? (

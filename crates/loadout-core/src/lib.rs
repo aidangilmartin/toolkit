@@ -19,6 +19,7 @@ pub mod settings_xml;
 pub mod store;
 #[cfg(test)]
 mod test_http;
+pub mod update;
 
 pub use app::Loadout;
 pub use error::{Error, Result};

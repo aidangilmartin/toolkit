@@ -368,6 +368,7 @@ let config: AppConfig = {
   afterLaunch: "minimize",
   confirmFileChanges: true,
   setupComplete: params.get("setup") !== "1",
+  checkForUpdates: true,
 };
 
 const fileValues: Values = {
@@ -486,6 +487,8 @@ function deployedFor(profile: Profile | undefined): DeployedFile[] {
 
 const listeners = new Set<(p: Progress) => void>();
 const emit = (p: Progress) => listeners.forEach((l) => l(p));
+const updateListeners = new Set<(p: Progress) => void>();
+const emitUpdate = (p: Progress) => updateListeners.forEach((l) => l(p));
 
 function diff(current: Values, overlay: Values): KeyChange[] {
   return Object.entries(overlay)
@@ -844,6 +847,38 @@ export const mockApi: Api & {
     await wait();
     const index = snapshots.findIndex((s) => s.id === snapshotId);
     if (index >= 0) snapshots.splice(index, 1);
+  },
+
+  async checkForUpdate() {
+    await wait(300);
+    if (params.get("update") !== "1") return null;
+    return {
+      version: "0.5.0",
+      currentVersion: __APP_VERSION__,
+      notes: [
+        "One-click updates: Loadout tells you when a new version is out and installs it for you.",
+        "Server search shows each server's tags.",
+      ],
+      releaseUrl: "https://github.com/aidangilmartin/toolkit/releases/latest",
+      publishedAt: now(),
+      size: 2_498_290,
+      kind: "installer",
+    };
+  },
+  async installUpdate() {
+    const total = 2_498_290;
+    for (let done = 0; done <= total; done += total / 8) {
+      emitUpdate({ stage: "copying", done, total, message: "Downloading Loadout 0.5.0" });
+      await wait(180);
+    }
+    // The real app exits here and the installer reopens it.
+  },
+  async openReleasePage() {
+    await wait(50);
+  },
+  async onUpdateProgress(listener) {
+    updateListeners.add(listener);
+    return () => updateListeners.delete(listener);
   },
 
   async launchFivem() {
