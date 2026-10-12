@@ -15,6 +15,9 @@ mods. Press Play and Loadout switches everything over, then joins the server. No
   `IP:port` or `cfx.re/join` link. Loadout fills in its name and logo and shows them on the
   profile. **Play** applies the profile, then joins the server through FiveM's own
   `fivem://connect/…` link.
+- **No "FiveM needs to restart"**: before joining, Loadout reads the game build, pure mode and
+  pool sizes the server needs and starts FiveM that way, so FiveM doesn't restart itself after
+  connecting.
 - **Your own sounds and mods**: upload a `WEAPONS_PLAYER.rpf` and a `RESIDENT.rpf` (they replace
   the game's in `GTA V\x64\audio\sfx`) and any `.rpf` mods for FiveM's `mods` folder, per
   profile. Loadout keeps a copy, so only the profile you're playing has its files installed.
@@ -103,6 +106,13 @@ its settings.
 - **Only `.rpf` files**: sounds are single `.rpf` files, and mods are `.rpf` files or a `.zip` of
   them. Executables, `.asi` loaders, ScriptHookV and `dinput8.dll` are refused. Loadout handles
   settings and cosmetic files only.
+- **Joining without a restart**: FiveM restarts itself when a server needs a different game build
+  (`sv_enforceGameBuild`), pure mode (`sv_pureLevel`), pool sizes (`sv_poolSizesIncrease`) or
+  game executable (`sv_defaultGameBuild`). When FiveM is closed, Play reads these from the
+  server's own `/info.json` (the same file FiveM checks). It sets `PoolSizesIncrease` and
+  `DefaultBuild` in `CitizenFX.ini` and starts FiveM with the `-b` (build) and `-pure_` options,
+  which is exactly what FiveM's own restart does. If the server can't be reached, FiveM just
+  restarts as before.
 - **Server search** uses the same server list as FiveM's own browser. Loadout downloads it on
   the first search (a few seconds) and keeps it for ten minutes. Private and unlisted servers
   don't show up; paste their `IP:port` or `cfx.re/join` link instead.
@@ -137,10 +147,12 @@ This checklist covers what automated tests can't reach:
    vanilla again and the mod is loaded.
 5. **Backups → Restore vanilla**. The GTA V `x64\audio\sfx` files should be the originals
    (Steam/Rockstar "verify files" should find nothing to fix).
-6. New profile → search for a server you know by name: it should show up with its logo and
+6. Play a profile whose server needs another game build or pure mode (the "FiveM needs to
+   restart" dialog): FiveM should start on that build and join without restarting.
+7. New profile → search for a server you know by name: it should show up with its logo and
    player count, and picking it fills in the name and logo.
-7. Look up a server that's offline: the error should say so, and choosing a logo by hand works.
-8. For the settings marked _verify_, set each option in-game and compare it with
+8. Look up a server that's offline: the error should say so, and choosing a logo by hand works.
+9. For the settings marked _verify_, set each option in-game and compare it with
    `gta5_settings.xml`.
 
 ## Development

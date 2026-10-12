@@ -13,7 +13,13 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import { api, errorMessage } from "../../api";
-import type { Profile, ServerInfo, ServerListing, ServerSearch } from "../../api/types";
+import type {
+  GameRequirements,
+  Profile,
+  ServerInfo,
+  ServerListing,
+  ServerSearch,
+} from "../../api/types";
 import { ServerLogo } from "../../components/ServerLogo";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/form";
@@ -28,6 +34,14 @@ const ADDRESS =
 const JOIN_CODE = /^[a-z0-9]{5,8}$/i;
 
 const number = new Intl.NumberFormat();
+
+/** "Game build 3095 · pure mode 1 · bigger pools" */
+function requirementsText(req: GameRequirements): string {
+  const parts = [req.gameBuild ? `Game build ${req.gameBuild}` : "FiveM's default game build"];
+  if (req.pureLevel) parts.push(`pure mode ${req.pureLevel}`);
+  if (Object.keys(req.poolSizes).length) parts.push("bigger pools");
+  return parts.join(" · ");
+}
 
 /**
  * The server a profile joins after applying. Search the FiveM server list (or
@@ -53,7 +67,10 @@ export function ServerSection({
   const [searching, setSearching] = useState(!address);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [found, setFound] = useState<Pick<ServerInfo, "players" | "maxPlayers"> | null>(null);
+  const [found, setFound] = useState<Pick<
+    ServerInfo,
+    "players" | "maxPlayers" | "requirements"
+  > | null>(null);
   // The listing's logo, shown while the real one is being fetched.
   const [preview, setPreview] = useState<string | null>(null);
   // Answers for a server that's no longer the chosen one are dropped.
@@ -93,9 +110,9 @@ export function ServerSection({
     const picked = `cfx.re/join/${listing.id}`;
     onChange({ serverAddress: picked, serverName: listing.name, serverIcon: null });
     setPreview(listing.iconUrl);
-    setFound(listing);
+    setFound({ players: listing.players, maxPlayers: listing.maxPlayers, requirements: null });
     setSearching(false);
-    onFound?.({ ...listing, address: picked, icon: null });
+    onFound?.({ ...listing, address: picked, icon: null, requirements: null });
     void lookup(picked, listing.name, null);
   };
 
@@ -161,6 +178,12 @@ export function ServerSection({
               {found?.players != null &&
                 ` · ${found.players}${found.maxPlayers ? `/${found.maxPlayers}` : ""} players online`}
             </p>
+            {found?.requirements && (
+              <p className="mt-0.5 text-[11px] text-muted">
+                {requirementsText(found.requirements)}. Play starts FiveM this way, so it won't need
+                to restart.
+              </p>
+            )}
           </div>
           <Button variant="ghost" size="icon-sm" aria-label="Remove server" onClick={clear}>
             <X className="size-4" />

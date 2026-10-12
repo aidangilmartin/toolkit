@@ -58,12 +58,19 @@ const knownServers: Record<string, Omit<ServerInfo, "address">> = {
     icon: logo("#ef4444", "#7c2d12", "AP"),
     players: 87,
     maxPlayers: 128,
+    requirements: {
+      gameBuild: 3095,
+      pureLevel: 1,
+      poolSizes: { CWeaponComponentInfo: 500 },
+      exeBuild: null,
+    },
   },
   "cfx.re/join/lsl8rp": {
     name: "Los Santos Life RP",
     icon: logo("#3b82f6", "#1e1b4b", "LS"),
     players: 212,
     maxPlayers: 256,
+    requirements: { gameBuild: 3258, pureLevel: 0, poolSizes: {}, exeBuild: null },
   },
 };
 
@@ -752,8 +759,14 @@ export const mockApi: Api & {
     if (known) return copy({ address, ...known });
     const listing = listed.find((s) => `cfx.re/join/${s.id}` === address.toLowerCase());
     if (listing) {
-      const { name, iconUrl, players, maxPlayers } = listing;
-      return { address, name, icon: iconUrl, players, maxPlayers };
+      const { name, iconUrl, players, maxPlayers, tags } = listing;
+      const requirements = {
+        gameBuild: 3095,
+        pureLevel: tags.includes("pvp") ? 1 : 0,
+        poolSizes: {},
+        exeBuild: null,
+      };
+      return { address, name, icon: iconUrl, players, maxPlayers, requirements };
     }
     const words = ["Vinewood", "Paleto", "Sandy", "Vespucci", "Blaine", "Mirror Park"];
     const pick = words[[...address].reduce((sum, c) => sum + c.charCodeAt(0), 0) % words.length];
@@ -763,6 +776,7 @@ export const mockApi: Api & {
       icon: logo("#a855f7", "#312e81", pick.slice(0, 2).toUpperCase()),
       players: 34,
       maxPlayers: 64,
+      requirements: null,
     };
   },
   async searchServers(query) {
@@ -884,8 +898,17 @@ export const mockApi: Api & {
   async launchFivem() {
     await wait(300);
   },
-  async connectServer() {
+  async connectServer(address) {
     await wait(300);
+    const req = knownServers[normalizeAddress(address).toLowerCase()]?.requirements;
+    if (!req?.gameBuild) return [];
+    return [
+      `game build ${req.gameBuild}`,
+      ...(Object.keys(req.poolSizes).length
+        ? [`bigger pools (${Object.keys(req.poolSizes).join(", ")})`]
+        : []),
+      ...(req.pureLevel ? [`pure mode ${req.pureLevel}`] : []),
+    ];
   },
   async openFolder() {
     await wait(50);

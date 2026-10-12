@@ -64,7 +64,11 @@ export interface Api {
   onUpdateProgress(listener: (progress: Progress) => void): Promise<() => void>;
 
   launchFivem(): Promise<void>;
-  connectServer(address: string): Promise<void>;
+  /**
+   * Join a server. FiveM is started with the game build and pure mode the server
+   * needs, so it doesn't restart; returns what was matched (empty if nothing).
+   */
+  connectServer(address: string): Promise<string[]>;
   openFolder(target: FolderTarget): Promise<void>;
 
   /** Native pickers. Return null when cancelled. */

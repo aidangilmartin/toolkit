@@ -268,23 +268,81 @@ pub async fn launch_fivem(app: AppHandle, state: State<'_, AppState>) -> CmdResu
     Ok(())
 }
 
+/// Join a server. When FiveM isn't running, Loadout first reads what the server
+/// needs (game build, pure mode, pools) and starts FiveM that way, so FiveM
+/// doesn't have to restart itself after connecting. Returns what was matched,
+/// for the "Joining…" message.
 #[tauri::command]
 pub async fn connect_server(
     app: AppHandle,
     state: State<'_, AppState>,
     address: String,
-) -> CmdResult<()> {
+) -> CmdResult<Vec<String>> {
     let address = launch::normalize_server_address(&address)?;
     let url = launch::connect_url(&address);
+    let fivem_running = state
+        .core
+        .running_processes()
+        .iter()
+        .any(|p| p.to_ascii_lowercase().starts_with("fivem"));
+    // A running FiveM takes the link itself (and restarts if it must).
+    let prepared = if fivem_running {
+        None
+    } else {
+        let wanted = address.clone();
+        let (setup, exe) = run(&state, move |core| {
+            Ok((core.prepare_connect(&wanted), core.paths()?.fivem_exe))
+        })
+        .await?;
+        match setup {
+            Ok(setup) => Some((setup, exe)),
+            Err(err) => {
+                log::warn!("couldn't read what {address} needs ({err}); FiveM may restart");
+                None
+            }
+        }
+    };
+    let mut summary = prepared
+        .as_ref()
+        .map(|(setup, _)| setup.summary.clone())
+        .unwrap_or_default();
+
     if cfg!(windows) {
-        open_through_shell(url, None).await?;
+        let mut started = false;
+        if let Some((setup, Some(exe))) = &prepared {
+            // The same command line FiveM uses when it restarts for a server.
+            let args = setup
+                .args
+                .iter()
+                .cloned()
+                .chain([format!("\"{url}\"")])
+                .collect::<Vec<_>>()
+                .join(" ");
+            let (exe, dir) = (exe.clone(), exe.parent().map(Path::to_path_buf));
+            match tauri::async_runtime::spawn_blocking(move || {
+                crate::shell::open_with_args(&exe, &args, dir.as_deref())
+            })
+            .await
+            {
+                Ok(Ok(())) => started = true,
+                Ok(Err(err)) => {
+                    log::warn!("couldn't start FiveM with the server's settings: {err}")
+                }
+                Err(err) => log::warn!("couldn't start FiveM with the server's settings: {err}"),
+            }
+        }
+        if !started {
+            // Just the link: FiveM restarts itself if it needs another build.
+            summary.clear();
+            open_through_shell(url, None).await?;
+        }
     } else {
         app.opener()
             .open_url(url, None::<&str>)
             .map_err(|e| format!("Couldn't open FiveM ({e}). Is FiveM installed?"))?;
     }
     after_launch(&app, &state.core);
-    Ok(())
+    Ok(summary)
 }
 
 #[tauri::command]

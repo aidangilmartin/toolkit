@@ -150,6 +150,8 @@ pub struct ServerInfo {
     pub icon: Option<String>,
     pub players: Option<u32>,
     pub max_players: Option<u32>,
+    /// What the server needs FiveM to start with, when it says.
+    pub requirements: Option<GameRequirements>,
 }
 
 /// A server from the FiveM server list, as shown in search results.
@@ -179,6 +181,23 @@ pub struct ServerSearch {
     pub matches: u32,
     /// How many servers are listed right now.
     pub total: u32,
+}
+
+/// What a server needs FiveM to start with. FiveM restarts itself ("FiveM needs
+/// to restart") when it joins a server and any of these differ, so Loadout
+/// starts it with them straight away.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct GameRequirements {
+    /// `sv_enforceGameBuild`: the game build the server requires.
+    pub game_build: Option<u32>,
+    /// `sv_pureLevel`: 0 (off), 1 or 2.
+    pub pure_level: u32,
+    /// `sv_poolSizesIncrease`: extra room in the game's pools.
+    pub pool_sizes: BTreeMap<String, u32>,
+    /// The game executable's build, when the server decides it (otherwise FiveM's own default).
+    pub exe_build: Option<u32>,
 }
 
 /// Files a profile carries itself, uploaded when creating or editing it.

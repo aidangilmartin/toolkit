@@ -13,6 +13,7 @@ export type { DeployedFile } from "../bindings/DeployedFile";
 export type { FileOpKind } from "../bindings/FileOpKind";
 export type { FileOpPlan } from "../bindings/FileOpPlan";
 export type { FolderTarget } from "../bindings/FolderTarget";
+export type { GameRequirements } from "../bindings/GameRequirements";
 export type { GraphicsSchema } from "../bindings/GraphicsSchema";
 export type { ImportProposal } from "../bindings/ImportProposal";
 export type { InstallKind } from "../bindings/InstallKind";

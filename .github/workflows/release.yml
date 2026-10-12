@@ -4,7 +4,7 @@ name: Release
 # app version in src-tauri/tauri.conf.json, whenever that version has no release yet.
 # It runs when:
 # - a commit lands on the default branch (so bumping the version releases it),
-# - a tag like v0.4.0 is pushed (it must match the app version), or
+# - a tag like v0.5.0 is pushed (it must match the app version), or
 # - it's started by hand from the Actions tab (Release → Run workflow).
 on:
   push:
@@ -13,9 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to create and release, e.g. v0.4.0
+        description: Tag to create and release, e.g. v0.5.0
         required: true
-        default: v0.4.0
+        default: v0.5.0
 
 permissions:
   contents: write
@@ -101,9 +101,8 @@ jobs:
 
             ## What's new
 
-            - **One-click updates.** From this version on, Loadout tells you when a new version is out, shows what's new, and installs it with one click (then reopens). Each download is checked against the checksum GitHub publishes for it. You can also check by hand in Settings → Updates.
-            - **Fixed:** Play no longer makes FiveM complain that it "should be launched directly from the shell or a web browser". Loadout asks Windows Explorer to start FiveM, just like a double-click.
-            - **Search the FiveM server list** when you create or edit a profile, or paste a server's IP:port or cfx.re link.
+            - **Join servers without "FiveM needs to restart".** Before joining, Loadout reads the game build, pure mode and pool sizes the server needs, and starts FiveM that way from the beginning, so it goes straight into the server. The "Joining…" message says what was matched, and the profile's server box shows what the server needs.
+            - Loadout updates itself: when a new version is out it shows what's new and installs it with one click (from 0.4.0 on).
 
             ## What it does
 

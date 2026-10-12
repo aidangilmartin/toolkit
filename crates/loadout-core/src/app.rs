@@ -371,6 +371,33 @@ impl Loadout {
         ))
     }
 
+    /// Get FiveM ready to join `address` without restarting: read what the
+    /// server needs (game build, pure mode, pools) and write the matching keys
+    /// to FiveM's CitizenFX.ini. The shell then starts FiveM with `args`.
+    /// Only call this while FiveM is closed: it writes that file too.
+    pub fn prepare_connect(&self, address: &str) -> Result<launch::LaunchSetup> {
+        let requirements = servers::game_requirements(address)?;
+        let setup = launch::launch_setup(&requirements);
+        self.write_launch_settings(&setup)?;
+        Ok(setup)
+    }
+
+    /// Write a launch setup's `[Game]` keys to FiveM's CitizenFX.ini.
+    pub fn write_launch_settings(&self, setup: &launch::LaunchSetup) -> Result<()> {
+        let ini = self
+            .paths()?
+            .fivem_app_dir
+            .map(|dir| dir.join("CitizenFX.ini"))
+            .filter(|ini| ini.is_file());
+        match ini {
+            Some(ini) => launch::update_citizenfx_ini(&ini, &setup.ini),
+            None => {
+                log::warn!("CitizenFX.ini not found; FiveM may restart to switch builds");
+                Ok(())
+            }
+        }
+    }
+
     /// A logo picked by hand, as a `data:` URL for [`Profile::server_icon`].
     pub fn read_logo_file(&self, path: &Path) -> Result<String> {
         servers::read_logo_file(path)

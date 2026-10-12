@@ -15,8 +15,8 @@ use serde_json::Value;
 use ureq::Agent;
 
 use crate::error::{Error, IoContext, Result};
-use crate::launch::normalize_server_address;
-use crate::model::ServerInfo;
+use crate::launch::{normalize_server_address, requirements_from_vars};
+use crate::model::{GameRequirements, ServerInfo};
 
 pub const CFX_API: &str = "https://frontend.cfx-services.net/api/servers";
 
@@ -105,6 +105,74 @@ fn lookup_direct(agent: &Agent, address: &str) -> Result<ServerInfo> {
     parse_direct(&info, dynamic.as_deref())
 }
 
+/// What the server needs FiveM to start with (game build, pure mode, pools).
+/// Read from the server's own `/info.json`, which is what FiveM itself checks;
+/// for join codes whose server can't be reached, from the server list's copy.
+pub fn game_requirements(address: &str) -> Result<GameRequirements> {
+    let agent: Agent = Agent::config_builder()
+        .timeout_global(Some(Duration::from_secs(5)))
+        .user_agent("Mozilla/5.0")
+        .build()
+        .into();
+    requirements_with(&agent, &cfx_api(), address)
+}
+
+fn requirements_with(agent: &Agent, api: &str, address: &str) -> Result<GameRequirements> {
+    let address = normalize_server_address(address).map_err(Error::Invalid)?;
+    let server_vars = |base: &str| -> Option<Value> {
+        let body = get(agent, &format!("{base}/info.json"), JSON_LIMIT).ok()?;
+        let info: Value = serde_json::from_slice(&body).ok()?;
+        info["vars"].is_object().then(|| info["vars"].clone())
+    };
+    match address.strip_prefix("cfx.re/join/") {
+        Some(code) => {
+            let body = get(agent, &format!("{api}/single/{code}"), JSON_LIMIT)
+                .map_err(|err| network_error("cfx.re", err))?;
+            let value = parse_json(&body, "cfx.re")?;
+            let data = &value["Data"];
+            if !data.is_object() {
+                return Err(Error::Network(
+                    "cfx.re didn't return that server. It may be offline.".into(),
+                ));
+            }
+            let endpoints = data["connectEndPoints"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default();
+            let direct = endpoints
+                .iter()
+                .filter_map(Value::as_str)
+                .filter(|e| !e.contains("private-placeholder"))
+                .take(2)
+                .find_map(|endpoint| {
+                    let base =
+                        if endpoint.starts_with("http://") || endpoint.starts_with("https://") {
+                            endpoint.trim_end_matches('/').to_string()
+                        } else {
+                            format!("http://{endpoint}")
+                        };
+                    server_vars(&base)
+                });
+            Ok(requirements_from_vars(
+                direct.as_ref().unwrap_or(&data["vars"]),
+            ))
+        }
+        None => {
+            let host = if address.contains(':') {
+                address.clone()
+            } else {
+                format!("{address}:{DEFAULT_PORT}")
+            };
+            let vars = server_vars(&format!("http://{host}")).ok_or_else(|| {
+                Error::Network(format!(
+                    "Couldn't reach {host}. Check the address and that the server is online."
+                ))
+            })?;
+            Ok(requirements_from_vars(&vars))
+        }
+    }
+}
+
 fn parse_json(bytes: &[u8], what: &str) -> Result<Value> {
     serde_json::from_slice(bytes).map_err(|_| {
         Error::Network(format!(
@@ -139,6 +207,9 @@ fn parse_cfx(bytes: &[u8]) -> Result<(ServerInfo, Option<String>)> {
         max_players: as_u32(&data["sv_maxclients"])
             .or_else(|| as_u32(&data["svMaxclients"]))
             .or_else(|| as_u32(&data["vars"]["sv_maxClients"])),
+        requirements: data["vars"]
+            .is_object()
+            .then(|| requirements_from_vars(&data["vars"])),
     };
     Ok((info, icon_version))
 }
@@ -167,6 +238,9 @@ fn parse_direct(info: &[u8], dynamic: Option<&[u8]>) -> Result<ServerInfo> {
         players: as_u32(&dynamic["clients"]),
         max_players: as_u32(&dynamic["sv_maxclients"])
             .or_else(|| as_u32(&info["vars"]["sv_maxClients"])),
+        requirements: info["vars"]
+            .is_object()
+            .then(|| requirements_from_vars(&info["vars"])),
     })
 }
 
@@ -404,5 +478,43 @@ mod tests {
         let txt = dir.path().join("logo.txt");
         fs::write(&txt, "hello").unwrap();
         assert!(read_logo_file(&txt).is_err());
+    }
+
+    #[test]
+    fn reads_requirements_from_the_server_itself() {
+        let port = crate::test_http::serve_with(|port| {
+            HashMap::from([
+                (
+                    "/api/servers/single/abc123".to_string(),
+                    Reply::ok(format!(
+                        r#"{{"Data":{{"connectEndPoints":["private-placeholder.cfx.re","127.0.0.1:{port}"],
+                            "vars":{{"sv_enforceGameBuild":"2060"}}}}}}"#
+                    )),
+                ),
+                (
+                    "/api/servers/single/nodirect".to_string(),
+                    Reply::ok(
+                        &br#"{"Data":{"connectEndPoints":["private-placeholder.cfx.re"],"vars":{"sv_enforceGameBuild":"2699","sv_pureLevel":"2"}}}"#[..],
+                    ),
+                ),
+                (
+                    "/info.json".to_string(),
+                    Reply::ok(
+                        &br#"{"vars":{"sv_enforceGameBuild":"3095","sv_pureLevel":"1","sv_poolSizesIncrease":"{\"CWeaponComponentInfo\":500}","sv_replaceExeToSwitchBuilds":"false"}}"#[..],
+                    ),
+                ),
+            ])
+        });
+        let api = format!("http://127.0.0.1:{port}/api/servers");
+        // The server's own info.json wins over the list's (older) copy.
+        let req = requirements_with(&test_agent(), &api, "cfx.re/join/abc123").unwrap();
+        assert_eq!((req.game_build, req.pure_level), (Some(3095), 1));
+        assert_eq!(req.pool_sizes.get("CWeaponComponentInfo"), Some(&500));
+        // Private servers: the list's copy.
+        let req = requirements_with(&test_agent(), &api, "nodirect").unwrap();
+        assert_eq!((req.game_build, req.pure_level), (Some(2699), 2));
+        // ip:port asks the server directly.
+        let req = requirements_with(&test_agent(), &api, &format!("127.0.0.1:{port}")).unwrap();
+        assert_eq!(req.game_build, Some(3095));
     }
 }

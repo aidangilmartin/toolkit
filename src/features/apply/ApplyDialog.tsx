@@ -67,8 +67,12 @@ function ApplyFlow({ request, onClose }: { request: ApplyRequest; onClose: () =>
       await api.launchFivem();
       toast.success("Starting FiveM…");
     } else {
-      await api.connectServer(then.address);
-      toast.success(`Joining ${serverName ?? then.address}…`);
+      const matched = await api.connectServer(then.address);
+      toast.success(`Joining ${serverName ?? then.address}…`, {
+        description: matched.length
+          ? `FiveM starts on ${matched.join(", ")}, so it won't need to restart.`
+          : undefined,
+      });
     }
   }, [request.then, serverName]);
 

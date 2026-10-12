@@ -836,3 +836,27 @@ fn leftovers_after_commit_never_rewind_the_ledger() {
     );
     assert_eq!(w.originals_count(), 0);
 }
+
+#[test]
+fn launch_settings_go_into_citizenfx_ini() {
+    use loadout_core::launch::{launch_setup, requirements_from_vars};
+    let w = World::new();
+    let ini = w.fivem("CitizenFX.ini");
+    let setup = launch_setup(&requirements_from_vars(&serde_json::json!({
+        "sv_enforceGameBuild": "3095",
+        "sv_pureLevel": "1",
+        "sv_poolSizesIncrease": "{\"CWeaponComponentInfo\":500}",
+        "sv_defaultGameBuild": "3570",
+    })));
+    assert_eq!(setup.args, ["-b3095", "-pure_1"]);
+    w.app.write_launch_settings(&setup).unwrap();
+    let text = fs::read_to_string(&ini).unwrap();
+    assert!(text.starts_with("[Game]\r\nIVPath="), "{text}");
+    assert!(
+        text.contains("\r\nPoolSizesIncrease={\"CWeaponComponentInfo\":500}\r\n"),
+        "{text}"
+    );
+    assert!(text.contains("\r\nDefaultBuild=3570\r\n"), "{text}");
+    // The GTA V folder is still found from the same file.
+    assert!(w.app.paths().unwrap().gta_install_dir.is_some());
+}
