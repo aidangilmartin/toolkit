@@ -101,7 +101,9 @@ jobs:
 
             ## What's new
 
-            - **Join servers without "FiveM needs to restart".** Before joining, Loadout reads the game build, pure mode and pool sizes the server needs, and starts FiveM that way from the beginning, so it goes straight into the server. The "Joining…" message says what was matched, and the profile's server box shows what the server needs.
+            - **Fewer "FiveM needs to restart" prompts.** Loadout now always sets FiveM's game executable build before starting it. Before, it could leave that setting out, and FiveM then fell back to a newer executable and restarted anyway. The connect link also carries the server's build and pure mode now.
+            - `loadout.log` (Settings → Open logs) records what each server asked for and the exact command FiveM was started with.
+            - **Join servers without "FiveM needs to restart"** (0.5.0). Before joining, Loadout reads the game build, pure mode and pool sizes the server needs, and starts FiveM that way from the beginning, so it goes straight into the server. The "Joining…" message says what was matched, and the profile's server box shows what the server needs.
             - Loadout updates itself: when a new version is out it shows what's new and installs it with one click (from 0.4.0 on).
 
             ## What it does

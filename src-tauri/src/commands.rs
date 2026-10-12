@@ -279,7 +279,6 @@ pub async fn connect_server(
     address: String,
 ) -> CmdResult<Vec<String>> {
     let address = launch::normalize_server_address(&address)?;
-    let url = launch::connect_url(&address);
     let fivem_running = state
         .core
         .running_processes()
@@ -302,10 +301,16 @@ pub async fn connect_server(
             }
         }
     };
-    let mut summary = prepared
+    let summary = prepared
         .as_ref()
         .map(|(setup, _)| setup.summary.clone())
         .unwrap_or_default();
+    // The link carries the build and pure mode too, in case FiveM is started by
+    // the link alone.
+    let url = match &prepared {
+        Some((setup, _)) => setup.connect_link(&address),
+        None => launch::connect_url(&address),
+    };
 
     if cfg!(windows) {
         let mut started = false;
@@ -318,6 +323,7 @@ pub async fn connect_server(
                 .chain([format!("\"{url}\"")])
                 .collect::<Vec<_>>()
                 .join(" ");
+            log::info!("starting {} {args}", exe.display());
             let (exe, dir) = (exe.clone(), exe.parent().map(Path::to_path_buf));
             match tauri::async_runtime::spawn_blocking(move || {
                 crate::shell::open_with_args(&exe, &args, dir.as_deref())
@@ -330,10 +336,12 @@ pub async fn connect_server(
                 }
                 Err(err) => log::warn!("couldn't start FiveM with the server's settings: {err}"),
             }
+        } else if prepared.is_some() {
+            log::warn!("FiveM.exe wasn't found; opening the link instead");
         }
         if !started {
-            // Just the link: FiveM restarts itself if it needs another build.
-            summary.clear();
+            // Just the link: FiveM restarts itself if it still needs another build.
+            log::info!("opening {url}");
             open_through_shell(url, None).await?;
         }
     } else {

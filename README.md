@@ -111,8 +111,10 @@ its settings.
   game executable (`sv_defaultGameBuild`). When FiveM is closed, Play reads these from the
   server's own `/info.json` (the same file FiveM checks). It sets `PoolSizesIncrease` and
   `DefaultBuild` in `CitizenFX.ini` and starts FiveM with the `-b` (build) and `-pure_` options,
-  which is exactly what FiveM's own restart does. If the server can't be reached, FiveM just
-  restarts as before.
+  which is exactly what FiveM's own restart does. The connect link carries the same options
+  (`fivem://connect/…?-b3095?-pure_1`). If the server can't be reached, FiveM just restarts as
+  before. `loadout.log` (Settings → Open logs) shows what the server asked for and the exact
+  command FiveM was started with.
 - **Server search** uses the same server list as FiveM's own browser. Loadout downloads it on
   the first search (a few seconds) and keeps it for ten minutes. Private and unlisted servers
   don't show up; paste their `IP:port` or `cfx.re/join` link instead.

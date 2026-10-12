@@ -132,43 +132,57 @@ pub struct LaunchSetup {
 }
 
 pub fn launch_setup(req: &GameRequirements) -> LaunchSetup {
-    let mut args = Vec::new();
-    let mut ini = Vec::new();
+    // The executable FiveM must run: the server's choice, or FiveM's own default.
+    // FiveM's restart always writes this number; leaving it out lets FiveM pick
+    // another executable (and restart anyway).
+    let exe_build = req.exe_build.unwrap_or(FIVEM_DEFAULT_BUILD);
+    // Without an enforced build, FiveM wants the server's default build.
+    let build = req.game_build.unwrap_or(exe_build);
+    let mut args = vec![format!("-b{build}")];
     let mut summary = Vec::new();
-    match req.game_build {
-        Some(build) => {
-            args.push(format!("-b{build}"));
-            summary.push(format!("game build {build}"));
-            let pools = if req.pool_sizes.is_empty() {
-                String::new()
-            } else {
-                summary.push(format!(
-                    "bigger pools ({})",
-                    req.pool_sizes
-                        .keys()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ));
-                serde_json::to_string(&req.pool_sizes).unwrap_or_default()
-            };
-            ini.push(("PoolSizesIncrease", Some(pools)));
+    let mut pools = String::new();
+    if req.game_build.is_some() {
+        summary.push(format!("game build {build}"));
+        if !req.pool_sizes.is_empty() {
+            summary.push(format!(
+                "bigger pools ({})",
+                req.pool_sizes
+                    .keys()
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+            pools = serde_json::to_string(&req.pool_sizes).unwrap_or_default();
         }
-        // No enforced build: FiveM wants the server's default build.
-        None => {
-            match req.exe_build {
-                Some(build) => args.push(format!("-b{build}")),
-                None => ini.push(("SavedBuildNumber", None)),
-            }
-            ini.push(("PoolSizesIncrease", Some(String::new())));
-        }
+    }
+    let mut ini = vec![
+        ("PoolSizesIncrease", Some(pools)),
+        ("DefaultBuild", Some(exe_build.to_string())),
+    ];
+    // FiveM saves its default build as the last one used when it switches to it.
+    if build == FIVEM_DEFAULT_BUILD {
+        ini.push(("SavedBuildNumber", Some(build.to_string())));
     }
     if req.pure_level > 0 {
         args.push(format!("-pure_{}", req.pure_level));
         summary.push(format!("pure mode {}", req.pure_level));
     }
-    ini.push(("DefaultBuild", req.exe_build.map(|b| b.to_string())));
     LaunchSetup { args, ini, summary }
+}
+
+impl LaunchSetup {
+    /// The connect link, carrying the build and pure mode as well as the
+    /// command line does: FiveM picks the build from a `?-b<build>` part of the
+    /// link, and the pure level from `pure_` in any argument. So they arrive even
+    /// when FiveM ends up started by the link alone.
+    pub fn connect_link(&self, address: &str) -> String {
+        let mut link = connect_url(address);
+        for arg in &self.args {
+            link.push('?');
+            link.push_str(arg);
+        }
+        link
+    }
 }
 
 /// Set or remove keys in the `[Game]` section of FiveM's `CitizenFX.ini`,
@@ -335,7 +349,7 @@ mod tests {
                     "PoolSizesIncrease",
                     Some("{\"CWeaponComponentInfo\":500}".to_string())
                 ),
-                ("DefaultBuild", None),
+                ("DefaultBuild", Some("3258".to_string())),
             ]
         );
         assert_eq!(
@@ -345,6 +359,10 @@ mod tests {
                 "bigger pools (CWeaponComponentInfo)",
                 "pure mode 1"
             ]
+        );
+        assert_eq!(
+            setup.connect_link("cfx.re/join/abc123"),
+            "fivem://connect/cfx.re/join/abc123?-b3095?-pure_1"
         );
 
         req.exe_build = Some(3570);
@@ -360,15 +378,17 @@ mod tests {
             ]
         );
 
-        // No enforced build: FiveM's default build, or the one the server picked.
+        // No enforced build: FiveM's default build (saved as the last used, like
+        // FiveM does), or the one the server picked.
         let setup = launch_setup(&GameRequirements::default());
-        assert!(setup.args.is_empty());
+        assert_eq!(setup.args, ["-b3258"]);
+        assert!(setup.summary.is_empty());
         assert_eq!(
             setup.ini,
             [
-                ("SavedBuildNumber", None),
                 ("PoolSizesIncrease", Some(String::new())),
-                ("DefaultBuild", None),
+                ("DefaultBuild", Some("3258".to_string())),
+                ("SavedBuildNumber", Some("3258".to_string())),
             ]
         );
         let setup = launch_setup(&GameRequirements {
@@ -376,6 +396,10 @@ mod tests {
             ..Default::default()
         });
         assert_eq!(setup.args, ["-b3570"]);
+        assert_eq!(
+            setup.connect_link("1.2.3.4:30120"),
+            "fivem://connect/1.2.3.4:30120?-b3570"
+        );
     }
 
     #[test]

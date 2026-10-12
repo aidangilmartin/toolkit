@@ -377,6 +377,7 @@ impl Loadout {
     /// Only call this while FiveM is closed: it writes that file too.
     pub fn prepare_connect(&self, address: &str) -> Result<launch::LaunchSetup> {
         let requirements = servers::game_requirements(address)?;
+        log::info!("{address} needs {requirements:?}");
         let setup = launch::launch_setup(&requirements);
         self.write_launch_settings(&setup)?;
         Ok(setup)
@@ -390,7 +391,10 @@ impl Loadout {
             .map(|dir| dir.join("CitizenFX.ini"))
             .filter(|ini| ini.is_file());
         match ini {
-            Some(ini) => launch::update_citizenfx_ini(&ini, &setup.ini),
+            Some(ini) => {
+                log::info!("setting {:?} in {}", setup.ini, ini.display());
+                launch::update_citizenfx_ini(&ini, &setup.ini)
+            }
             None => {
                 log::warn!("CitizenFX.ini not found; FiveM may restart to switch builds");
                 Ok(())
