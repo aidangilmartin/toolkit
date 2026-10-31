@@ -1,6 +1,6 @@
 # Third-party notices
 
-Gun Soundpack Maker's game-file bridge (`resources/bridge`) includes the following software.
+Loadout's sound maker uses a game-file bridge (`bridge/`, built into the app) that includes the following software.
 
 ## CodeWalker
 

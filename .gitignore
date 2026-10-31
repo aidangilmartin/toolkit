@@ -17,3 +17,12 @@ node_modules/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# CodeWalker bridge (pnpm build:bridge)
+/bridge/.codewalker/
+/bridge/bin/
+/bridge/obj/
+/src-tauri/bridge/
+
+# never commit game audio
+*.awc

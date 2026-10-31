@@ -35,10 +35,16 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
+      # the sound maker's integration tests run the real CodeWalker bridge
+      - name: Build the CodeWalker bridge
+        run: pnpm build:bridge
       - run: pnpm test
       - run: pnpm build
 
@@ -56,15 +62,37 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
       - run: pnpm install --frozen-lockfile
       - name: Core tests on real Windows paths
         run: cargo test -p loadout-core
+      - name: Build the CodeWalker bridge
+        run: pnpm build:bridge --rid win-x64
+      # the sound maker's ID pack speaks with Windows voices; check the bridge can use them
+      - name: Spoken labels smoke test
+        shell: pwsh
+        run: |
+          '[{"id":"t","text":"pistol 4"}]' | Set-Content -Encoding utf8 phrases.json
+          $line = & src-tauri/bridge/gunpack-bridge.exe speak --in phrases.json --out speech | Select-Object -Last 1
+          Write-Output $line
+          $r = $line | ConvertFrom-Json
+          if ($r.ok) {
+            if (-not (Test-Path speech/t.wav)) { throw 'speak reported success but wrote no WAV' }
+          } elseif ($r.code -eq 'no-tts') {
+            Write-Output '::warning::No Windows voice on this runner; the ID pack falls back to beeps.'
+          } else {
+            throw "speak failed: $($r.error)"
+          }
       - name: Build the frontend
         run: pnpm build
       - name: Clippy (desktop app)
         run: cargo clippy -p loadout --all-targets -- -D warnings
       - name: Build the installer
         run: pnpm tauri build
+        env:
+          LOADOUT_REQUIRE_BRIDGE: "1"
       - uses: actions/upload-artifact@v4
         with:
           name: loadout-windows

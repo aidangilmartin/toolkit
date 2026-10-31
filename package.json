@@ -14,7 +14,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "tauri": "tauri",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "build:bridge": "node scripts/build-bridge.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
