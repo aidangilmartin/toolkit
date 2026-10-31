@@ -1,0 +1,18 @@
+node_modules/
+out/
+dist/
+release/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+# never commit game audio
+*.awc
+!src/**/fixtures/*.awc
+*.tsbuildinfo
+
+# CodeWalker bridge build outputs
+bridge/.codewalker/
+bridge/bin/
+bridge/obj/
+resources/bridge/

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic curves in CodeWalker's rel XML format (not game data). -->
+<Dat16>
+ <Version value="1" />
+ <Items>
+  <Item type="LinearCurve">
+   <Name>pistol_distance</Name>
+   <Flags value="0" />
+   <MinInput value="0" />
+   <MaxInput value="200" />
+   <LeftHandPairX value="10" />
+   <LeftHandPairY value="1" />
+   <RightHandPairX value="200" />
+   <RightHandPairY value="0" />
+  </Item>
+  <Item type="EqualPowerCurve">
+   <Name>crossfade_eq</Name>
+   <Flags value="0" />
+   <MinInput value="0" />
+   <MaxInput value="1" />
+   <Flip value="0" />
+  </Item>
+ </Items>
+</Dat16>

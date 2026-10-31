@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic clip dictionary in CodeWalker's YCD XML format (not game data): a reload clip whose
+     audio tag plays the "reload" entry of the pistol's reload sound set. -->
+<ClipDictionary>
+ <Clips>
+  <Item>
+   <Hash>reload_pistol</Hash>
+   <Name>reload_pistol</Name>
+   <Type value="Animation" />
+   <Unknown30 value="0" />
+   <Tags>
+    <Item>
+     <NameHash>audio</NameHash>
+     <UnkHash>hash_00000000</UnkHash>
+     <Attributes>
+      <Item>
+       <NameHash>id</NameHash>
+       <Type value="HashString" />
+       <Value>reload</Value>
+      </Item>
+      <Item>
+       <NameHash>soundset</NameHash>
+       <Type value="HashString" />
+       <Value>pistol_reload_set</Value>
+      </Item>
+     </Attributes>
+     <StartPhase value="0.4" />
+     <EndPhase value="0.4" />
+    </Item>
+   </Tags>
+   <Properties />
+   <AnimationHash>hash_00000000</AnimationHash>
+   <StartTime value="0" />
+   <EndTime value="1" />
+   <Rate value="1" />
+  </Item>
+ </Clips>
+ <Animations />
+</ClipDictionary>

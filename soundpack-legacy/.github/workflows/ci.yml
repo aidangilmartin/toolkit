@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      - name: Build CodeWalker bridge
+        run: npm run build:bridge
+      - run: npm test
+      - run: npm run build
+      - name: Electron smoke test
+        run: xvfb-run -a npx playwright test
+
+  package-windows:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: npm ci
+      - run: npm run dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # the ID pack's spoken labels only work with Windows voices; check the bridge can use them
+      - name: Spoken labels smoke test
+        shell: pwsh
+        run: |
+          '[{"id":"t","text":"pistol 4"}]' | Set-Content -Encoding utf8 phrases.json
+          $line = & resources/bridge/gunpack-bridge.exe speak --in phrases.json --out speech | Select-Object -Last 1
+          Write-Output $line
+          $r = $line | ConvertFrom-Json
+          if ($r.ok) {
+            if (-not (Test-Path speech/t.wav)) { throw 'speak reported success but wrote no WAV' }
+          } elseif ($r.code -eq 'no-tts') {
+            Write-Output '::warning::No Windows voice on this runner; the ID pack falls back to beeps.'
+          } else {
+            throw "speak failed: $($r.error)"
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gun-soundpack-maker-windows
+          path: release/*.exe

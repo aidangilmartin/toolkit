@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic sound graph in CodeWalker's rel XML format (not game data). -->
+<Dat54>
+ <Version value="7314721" />
+ <ContainerPaths>
+  <Item>weapons_player/ptl_pistol</Item>
+  <Item>resident/weapons</Item>
+  <Item>resident/explosions</Item>
+ </ContainerPaths>
+ <Items>
+  <Item type="MultitrackSound">
+   <Name>pistol_player_fire</Name>
+   <Header>
+    <Flags value="0xAA308114" />
+    <Volume value="-100" />
+    <Pitch value="50" />
+    <PreDelay value="0" />
+    <Category>weapons_player_cat</Category>
+    <VolumeCurve>pistol_distance</VolumeCurve>
+    <VolumeCurveScale value="100" />
+   </Header>
+   <ChildSounds>
+    <Item>pistol_body_rnd</Item>
+    <Item>pistol_mech</Item>
+   </ChildSounds>
+  </Item>
+  <Item type="RandomizedSound">
+   <Name>pistol_body_rnd</Name>
+   <Header>
+    <Flags value="0xAAAAAA28" />
+    <VolumeVariance value="200" />
+    <PitchVariance value="30" />
+   </Header>
+   <HistoryIndex value="0" />
+   <HistorySpace />
+   <Variations>
+    <Item name="pistol_body_a" value="1" />
+    <Item name="pistol_body_b" value="3" />
+   </Variations>
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_body_a</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/ptl_pistol</ContainerName>
+   <FileName>hash_16EF0EA5</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_body_b</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/ptl_pistol</ContainerName>
+   <FileName>hash_02032920</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_mech</Name>
+   <Header>
+    <Flags value="0xAAAA01AA" />
+    <PreDelay value="10" />
+   </Header>
+   <ContainerName>weapons_player/ptl_pistol</ContainerName>
+   <FileName>hash_0AA87351</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="EnvelopeSound">
+   <Name>pistol_report</Name>
+   <Header>
+    <Flags value="0xAA01AAAA" />
+    <LPFCutoff value="8000" />
+   </Header>
+   <Attack value="5" />
+   <Decay value="50" />
+   <Sustain value="80" />
+   <Hold value="100" />
+   <Release value="300" />
+   <ChildSound>pistol_report_wave</ChildSound>
+   <Mode value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_report_wave</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/ptl_pistol</ContainerName>
+   <FileName>hash_16EF0EA5</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_npc_fire</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>resident/weapons</ContainerName>
+   <FileName>hash_16EF0EA5</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>smg_player_fire</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/smg_smg</ContainerName>
+   <FileName>hash_16EF0EA5</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="CrossfadeSound">
+   <Name>pistol_echo</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <NearSound>pistol_echo_near</NearSound>
+   <FarSound>pistol_echo_far</FarSound>
+   <Mode value="2" />
+   <MinDistance value="20" />
+   <MaxDistance value="80" />
+   <Hysteresis value="0" />
+   <CrossfadeCurve>crossfade_eq</CrossfadeCurve>
+   <DistanceVariable />
+   <MinDistanceVariable />
+   <MaxDistanceVariable />
+   <HysteresisVariable />
+   <CrossfadeVariable />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_echo_near</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/ptl_pistol</ContainerName>
+   <FileName>hash_0AA87351</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_echo_far</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>resident/weapons</ContainerName>
+   <FileName>hash_02032920</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="CollapsingStereoSound">
+   <Name>pistol_heft</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <LeftSound>pistol_heft_l</LeftSound>
+   <RightSound>pistol_heft_r</RightSound>
+   <MinDistance value="5" />
+   <MaxDistance value="20" />
+   <MinDistanceVariable />
+   <MaxDistanceVariable />
+   <CrossfadeOverrideVariable />
+   <FrontendLeftPanVariable />
+   <FrontendRightPanVariable />
+   <PositionRelativePanDamping value="0" />
+   <PositionRelativePanDampingVariable />
+   <Mode value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_heft_l</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>resident/weapons</ContainerName>
+   <FileName>hash_02032920</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_heft_r</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>resident/weapons</ContainerName>
+   <FileName>hash_0AA87351</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="IfSound">
+   <Name>pistol_slowmo</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <TrueSound>pistol_player_fire</TrueSound>
+   <FalseSound>pistol_mech</FalseSound>
+   <ConditionVariable>game.slowmo</ConditionVariable>
+   <ConditionType value="2" />
+   <ConditionValue value="0.5" />
+   <RHS />
+  </Item>
+  <Item type="SoundSet">
+   <Name>pistol_reload_set</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <SoundSets>
+    <Item>
+     <ScriptName>reload</ScriptName>
+     <ChildSound>pistol_reload_wave</ChildSound>
+    </Item>
+   </SoundSets>
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_reload_wave</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/ptl_pistol</ContainerName>
+   <FileName>hash_02032920</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SoundSet">
+   <Name>hud_soundset</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <SoundSets>
+    <Item>
+     <ScriptName>beep</ScriptName>
+     <ChildSound>hud_beep</ChildSound>
+    </Item>
+   </SoundSets>
+  </Item>
+  <Item type="SimpleSound">
+   <Name>hud_beep</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>resident/weapons</ContainerName>
+   <FileName>hash_16EF0EA5</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>explosion_boom</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>resident/explosions</ContainerName>
+   <FileName>hash_16EF0EA5</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>frontend_click</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>resident/explosions</ContainerName>
+   <FileName>hash_02032920</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="RetriggeredOverlappedSound">
+   <Name>smg_auto</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <LoopCount value="-1" />
+   <LoopCountVariance value="0" />
+   <DelayTime value="66" />
+   <DelayTimeVariance value="0" />
+   <LoopCountVariable />
+   <DelayTimeVariable />
+   <StartSound>smg_player_fire</StartSound>
+   <RetriggerSound>smg_auto_shot</RetriggerSound>
+   <StopSound>smg_auto_tail</StopSound>
+  </Item>
+  <Item type="SimpleSound">
+   <Name>smg_auto_shot</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/smg_smg</ContainerName>
+   <FileName>hash_02032920</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>smg_auto_tail</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/smg_smg</ContainerName>
+   <FileName>hash_0AA87351</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+  <Item type="SimpleSound">
+   <Name>pistol_interior</Name>
+   <Header>
+    <Flags value="0xAAAAAAAA" />
+   </Header>
+   <ContainerName>weapons_player/ptl_pistol</ContainerName>
+   <FileName>hash_0AA87351</FileName>
+   <WaveSlotIndex value="0" />
+  </Item>
+ </Items>
+</Dat54>

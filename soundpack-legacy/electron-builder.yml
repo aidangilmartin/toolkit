@@ -1,0 +1,31 @@
+appId: com.soundpack.gunsoundpackmaker
+productName: Gun Soundpack Maker
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+asar: true
+# The game-file bridge (built by `npm run build:bridge`), which bundles CodeWalker; see THIRD_PARTY_NOTICES.md.
+extraResources:
+  - from: resources/bridge
+    to: bridge
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+win:
+  target:
+    - nsis
+    - portable
+  artifactName: ${productName}-${version}-${arch}-${target}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  target:
+    - AppImage
+  category: Audio
+mac:
+  target:
+    - dmg
+  category: public.app-category.music

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic test data in the layout of GTA V's weapons.meta (not game data). -->
+<CWeaponInfoBlob>
+  <Infos>
+    <Item>
+      <Infos>
+        <Item type="CWeaponInfo">
+          <Name>WEAPON_PISTOL</Name>
+          <Group>GROUP_PISTOL</Group>
+          <Audio>AUDIO_ITEM_PISTOL</Audio>
+          <HumanNameHash>WT_PIST</HumanNameHash>
+          <FireType>INSTANT_HIT</FireType>
+          <TimeBetweenShots value="0.150000" />
+        </Item>
+        <Item type="CWeaponInfo">
+          <Name>WEAPON_SMG</Name>
+          <Group>GROUP_SMG</Group>
+          <WeaponFlags>CarriedInHand Automatic Gun</WeaponFlags>
+          <Audio>AUDIO_ITEM_SMG</Audio>
+          <HumanNameHash>WT_SMG</HumanNameHash>
+          <FireType>INSTANT_HIT</FireType>
+          <TimeBetweenShots value="0.066000" />
+        </Item>
+        <Item type="CWeaponInfo">
+          <Name>WEAPON_KNIFE</Name>
+          <Group>GROUP_MELEE</Group>
+          <Audio>AUDIO_ITEM_KNIFE</Audio>
+          <HumanNameHash>WT_KNIFE</HumanNameHash>
+        </Item>
+      </Infos>
+    </Item>
+  </Infos>
+</CWeaponInfoBlob>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic mix categories in CodeWalker's rel XML format (not game data). -->
+<Dat22>
+ <Version value="1" />
+ <Items>
+  <Item type="Category">
+   <Name>weapons</Name>
+   <Flags value="0" />
+   <ParentOverrides value="0" />
+   <Volume value="-300" />
+   <Pitch value="0" />
+   <LPFCutoff value="23900" />
+   <LPFDistanceCurve />
+   <HPFCutoff value="0" />
+   <HPFDistanceCurve />
+   <DistanceRollOffScale value="100" />
+   <PlateauRollOffScale value="100" />
+   <OcclusionDamping value="0" />
+   <EnvironmentalFilterDamping value="0" />
+   <SourceReverbDamping value="0" />
+   <DistanceReverbDamping value="0" />
+   <InteriorReverbDamping value="0" />
+   <EnvironmentalLoudness value="0" />
+   <UnderwaterWetLevel value="0" />
+   <StonedWetLevel value="0" />
+   <Timer value="0" />
+   <SubCategories>
+    <Item>weapons_player_cat</Item>
+   </SubCategories>
+  </Item>
+  <Item type="Category">
+   <Name>weapons_player_cat</Name>
+   <Flags value="0" />
+   <ParentOverrides value="0" />
+   <Volume value="100" />
+   <Pitch value="0" />
+   <LPFCutoff value="20000" />
+   <LPFDistanceCurve />
+   <HPFCutoff value="0" />
+   <HPFDistanceCurve />
+   <DistanceRollOffScale value="150" />
+   <PlateauRollOffScale value="100" />
+   <OcclusionDamping value="0" />
+   <EnvironmentalFilterDamping value="0" />
+   <SourceReverbDamping value="0" />
+   <DistanceReverbDamping value="0" />
+   <InteriorReverbDamping value="0" />
+   <EnvironmentalLoudness value="0" />
+   <UnderwaterWetLevel value="0" />
+   <StonedWetLevel value="0" />
+   <Timer value="0" />
+   <SubCategories />
+  </Item>
+ </Items>
+</Dat22>

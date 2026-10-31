@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic weapon audio settings in CodeWalker's rel XML format (not game data). -->
+<Dat151>
+ <Version value="9037528" />
+ <Items>
+  <Item type="ItemAudioSettings" ntOffset="0">
+   <Name>audio_item_pistol</Name>
+   <FallBackWeapon>pistol_npc</FallBackWeapon>
+   <Weapons>
+    <Item>
+     <Category>player</Category>
+     <Weapon>pistol_player</Weapon>
+    </Item>
+   </Weapons>
+  </Item>
+  <Item type="WeaponSettings" ntOffset="0">
+   <Name>pistol_player</Name>
+   <Flags value="0" />
+   <Version value="0" />
+   <FireSound>pistol_player_fire</FireSound>
+   <ReportSound>pistol_report</ReportSound>
+   <ReportVolumeDelta value="-3" />
+   <ReportPredelayDelta value="20" />
+   <TailEnergyValue value="1" />
+   <EchoSound>pistol_echo</EchoSound>
+   <HeftSound>pistol_heft</HeftSound>
+   <ReloadSounds>pistol_reload_set</ReloadSounds>
+   <InteriorShotSound>pistol_interior</InteriorShotSound>
+   <SlowMoFireSound>pistol_slowmo</SlowMoFireSound>
+  </Item>
+  <Item type="WeaponSettings" ntOffset="0">
+   <Name>pistol_npc</Name>
+   <Flags value="0" />
+   <Version value="0" />
+   <FireSound>pistol_npc_fire</FireSound>
+  </Item>
+  <Item type="ItemAudioSettings" ntOffset="0">
+   <Name>audio_item_smg</Name>
+   <FallBackWeapon>smg_player</FallBackWeapon>
+  </Item>
+  <Item type="WeaponSettings" ntOffset="0">
+   <Name>smg_player</Name>
+   <Flags value="0" />
+   <Version value="0" />
+   <FireSound>smg_player_fire</FireSound>
+   <AutoSound>smg_auto</AutoSound>
+   <EchoSound>pistol_echo_far</EchoSound>
+  </Item>
+  <Item type="ExplosionAudioSettings" ntOffset="0">
+   <Name>explosion_grenade</Name>
+   <Flags value="0" />
+   <ExplosionSound>explosion_boom</ExplosionSound>
+   <DebrisSound />
+   <DeafeningVolume value="0" />
+   <DebrisTimeScale value="0" />
+   <DebrisVolume value="0" />
+   <ShockwaveIntensity value="0" />
+   <ShockwaveDelay value="0" />
+   <SlowMoExplosionSound />
+   <SlowMoExplosionPreSuckSound />
+   <SlowMoExplosionPreSuckSoundTime value="0" />
+   <SlowMoExplosionPreSuckMixerScene value="0" />
+  </Item>
+  <Item type="InteriorWeaponMetrics" ntOffset="0">
+   <Name>int_weapons_default</Name>
+   <Wetness value="0.4" />
+   <Visability value="1" />
+   <LPFCutoff value="12000" />
+   <PreDelay value="15" />
+   <Hold value="0.5" />
+  </Item>
+  <Item type="EnvironmentRule" ntOffset="0">
+   <Name>er_city</Name>
+   <Flags value="0" />
+   <ReverbSmall value="0.2" />
+   <ReverbMedium value="0.3" />
+   <ReverbLarge value="0.5" />
+   <ReverbDamp value="0.5" />
+   <EchoDelay value="180" />
+   <EchoDelayVariance value="40" />
+   <EchoAttenuation value="-6" />
+   <EchoNumber value="2" />
+   <EchoSoundList value="0" />
+   <BaseEchoVolumeModifier value="-3" />
+  </Item>
+ </Items>
+</Dat151>
