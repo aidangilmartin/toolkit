@@ -5,6 +5,7 @@
 //! - `ip:port` and hostnames are asked directly: every FiveM server answers
 //!   `GET /info.json` (with its logo as base64 PNG) and `GET /dynamic.json`.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::Duration;
@@ -15,7 +16,7 @@ use serde_json::Value;
 use ureq::Agent;
 
 use crate::error::{Error, IoContext, Result};
-use crate::launch::{normalize_server_address, requirements_from_vars};
+use crate::launch::{self, normalize_server_address, requirements_from_vars};
 use crate::model::{GameRequirements, ServerInfo};
 
 pub const CFX_API: &str = "https://frontend.cfx-services.net/api/servers";
@@ -106,18 +107,68 @@ fn lookup_direct(agent: &Agent, address: &str) -> Result<ServerInfo> {
 }
 
 /// What the server needs FiveM to start with (game build, pure mode, pools).
-/// Read from the server's own `/info.json`, which is what FiveM itself checks;
-/// for join codes whose server can't be reached, from the server list's copy.
+/// Read from the server's own `/info.json`, found the way FiveM finds it, which
+/// is what FiveM itself checks; for join codes whose server can't be reached,
+/// from the server list's copy. Pool sizes are then trimmed to cfx.re's limits,
+/// as FiveM does before comparing them.
 pub fn game_requirements(address: &str) -> Result<GameRequirements> {
     let agent: Agent = Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(5)))
         .user_agent("Mozilla/5.0")
         .build()
         .into();
-    requirements_with(&agent, &cfx_api(), address)
+    let mut requirements = requirements_with(&agent, &cfx_api(), CFX_JOIN, address)?;
+    if !requirements.pool_sizes.is_empty() {
+        match pool_size_limits(&agent, POOL_LIMITS_URL) {
+            Some(limits) => {
+                launch::limit_pool_sizes(&mut requirements.pool_sizes, &limits);
+            }
+            None => log::warn!(
+                "couldn't read FiveM's pool size limits; using the server's pool sizes as they are"
+            ),
+        }
+    }
+    Ok(requirements)
 }
 
-fn requirements_with(agent: &Agent, api: &str, address: &str) -> Result<GameRequirements> {
+/// Where FiveM resolves `cfx.re/join/<code>` (the `X-CitizenFX-Url` header).
+const CFX_JOIN: &str = "https://cfx.re/join";
+/// The pool size limits FiveM downloads at startup (`PoolSizesState.cpp`).
+const POOL_LIMITS_URL: &str = "https://gss.cfx-services.net/v1/public/pool-size-limits/fivem";
+
+fn pool_size_limits(agent: &Agent, url: &str) -> Option<BTreeMap<String, u32>> {
+    let body = get(agent, url, JSON_LIMIT).ok()?;
+    serde_json::from_slice(&body).ok()
+}
+
+/// The server URL FiveM itself connects to for a join code: cfx.re answers
+/// `GET https://cfx.re/join/<code>` with an `X-CitizenFX-Url` header (often a
+/// `*.users.cfx.re` proxy that works when the server's own address doesn't).
+fn join_url(agent: &Agent, join_base: &str, code: &str) -> Option<String> {
+    let response = agent
+        .get(&format!("{join_base}/{code}"))
+        .config()
+        .max_redirects(0)
+        .max_redirects_will_error(false)
+        .build()
+        .call()
+        .ok()?;
+    let url = response
+        .headers()
+        .get("X-CitizenFX-Url")?
+        .to_str()
+        .ok()?
+        .trim();
+    let url = url.trim_end_matches('/');
+    (url.starts_with("http") && !url.contains("private-placeholder")).then(|| url.to_string())
+}
+
+fn requirements_with(
+    agent: &Agent,
+    api: &str,
+    join_base: &str,
+    address: &str,
+) -> Result<GameRequirements> {
     let address = normalize_server_address(address).map_err(Error::Invalid)?;
     let server_vars = |base: &str| -> Option<Value> {
         let body = get(agent, &format!("{base}/info.json"), JSON_LIMIT).ok()?;
@@ -126,6 +177,13 @@ fn requirements_with(agent: &Agent, api: &str, address: &str) -> Result<GameRequ
     };
     match address.strip_prefix("cfx.re/join/") {
         Some(code) => {
+            // First where FiveM goes itself.
+            if let Some(vars) = join_url(agent, join_base, code).and_then(|url| {
+                log::info!("cfx.re/join/{code} is {url}");
+                server_vars(&url)
+            }) {
+                return Ok(requirements_from_vars(&vars));
+            }
             let body = get(agent, &format!("{api}/single/{code}"), JSON_LIMIT)
                 .map_err(|err| network_error("cfx.re", err))?;
             let value = parse_json(&body, "cfx.re")?;
@@ -153,6 +211,11 @@ fn requirements_with(agent: &Agent, api: &str, address: &str) -> Result<GameRequ
                         };
                     server_vars(&base)
                 });
+            if direct.is_none() {
+                log::warn!(
+                    "couldn't reach cfx.re/join/{code} itself; using the server list's copy of its settings"
+                );
+            }
             Ok(requirements_from_vars(
                 direct.as_ref().unwrap_or(&data["vars"]),
             ))
@@ -483,7 +546,29 @@ mod tests {
     #[test]
     fn reads_requirements_from_the_server_itself() {
         let port = crate::test_http::serve_with(|port| {
+            let mut via_join = Reply::ok("<html></html>");
+            via_join.headers.push((
+                "X-CitizenFX-Url",
+                format!("http://127.0.0.1:{port}/proxied/"),
+            ));
+            let mut placeholder = Reply::ok("");
+            placeholder.headers.push((
+                "X-CitizenFX-Url",
+                "https://private-placeholder.cfx.re/".into(),
+            ));
             HashMap::from([
+                ("/join/viajoin".to_string(), via_join),
+                ("/join/abc123".to_string(), placeholder),
+                (
+                    "/proxied/info.json".to_string(),
+                    Reply::ok(
+                        &br#"{"vars":{"sv_enforceGameBuild":"3095","sv_defaultGameBuild":"3889"}}"#[..],
+                    ),
+                ),
+                (
+                    "/api/servers/single/viajoin".to_string(),
+                    Reply::ok(&br#"{"Data":{"vars":{"sv_enforceGameBuild":"2060"}}}"#[..]),
+                ),
                 (
                     "/api/servers/single/abc123".to_string(),
                     Reply::ok(format!(
@@ -506,15 +591,34 @@ mod tests {
             ])
         });
         let api = format!("http://127.0.0.1:{port}/api/servers");
-        // The server's own info.json wins over the list's (older) copy.
-        let req = requirements_with(&test_agent(), &api, "cfx.re/join/abc123").unwrap();
+        let join = format!("http://127.0.0.1:{port}/join");
+        // Where cfx.re sends FiveM wins: it carries sv_defaultGameBuild, the list's copy doesn't.
+        let req = requirements_with(&test_agent(), &api, &join, "viajoin").unwrap();
+        assert_eq!((req.game_build, req.exe_build), (Some(3095), Some(3889)));
+        // Then the server's own info.json over the list's (older) copy.
+        let req = requirements_with(&test_agent(), &api, &join, "cfx.re/join/abc123").unwrap();
         assert_eq!((req.game_build, req.pure_level), (Some(3095), 1));
         assert_eq!(req.pool_sizes.get("CWeaponComponentInfo"), Some(&500));
         // Private servers: the list's copy.
-        let req = requirements_with(&test_agent(), &api, "nodirect").unwrap();
+        let req = requirements_with(&test_agent(), &api, &join, "nodirect").unwrap();
         assert_eq!((req.game_build, req.pure_level), (Some(2699), 2));
         // ip:port asks the server directly.
-        let req = requirements_with(&test_agent(), &api, &format!("127.0.0.1:{port}")).unwrap();
+        let req =
+            requirements_with(&test_agent(), &api, &join, &format!("127.0.0.1:{port}")).unwrap();
         assert_eq!(req.game_build, Some(3095));
+    }
+
+    #[test]
+    fn reads_pool_size_limits() {
+        let port = serve(HashMap::from([(
+            "/limits".to_string(),
+            Reply::ok(&br#"{"CWeaponComponentInfo":1000,"CPed":0}"#[..]),
+        )]));
+        let limits =
+            pool_size_limits(&test_agent(), &format!("http://127.0.0.1:{port}/limits")).unwrap();
+        assert_eq!(limits.get("CWeaponComponentInfo"), Some(&1000));
+        assert!(
+            pool_size_limits(&test_agent(), &format!("http://127.0.0.1:{port}/nope")).is_none()
+        );
     }
 }
