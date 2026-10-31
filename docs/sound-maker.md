@@ -1,10 +1,22 @@
-# Gun Soundpack Maker
+# Sound maker
 
-A desktop app for making **GTA V / FiveM gun sound packs**. It works from a **vanilla pack** of GTA V's original gun sounds, lets you swap in your own gunshots with an in-game-style preview, and rebuilds `WEAPONS_PLAYER.rpf` and `RESIDENT.rpf`. You drag the two files into your mods folder, with no OpenIV or CodeWalker round-trips.
+Loadout's **Sound maker** (in the sidebar) makes **GTA V / FiveM gun sound packs**. It works from a **vanilla pack** of GTA V's original gun sounds, lets you swap in your own gunshots with an in-game-style preview, and rebuilds `WEAPONS_PLAYER.rpf` and `RESIDENT.rpf`. Add them to a profile and Loadout installs them when you play it. It was the separate Gun Soundpack Maker app before.
+
+![Setting up the sound maker](screenshots/sound-maker-codewalker.png)
+
+## CodeWalker
+
+The sound maker reads GTA V's archives with [CodeWalker](https://github.com/dexyfex/CodeWalker) by dexyfex. CodeWalker has no open-source licence, so Loadout doesn't include it:
+
+1. Download CodeWalker from [gta5-mods.com](https://www.gta5-mods.com/tools/codewalker-gtav-interactive-3d-map) (the setup screen has a **Download CodeWalker** button).
+2. Extract the .zip anywhere.
+3. In the sound maker, **Choose folder…** and pick the folder with `CodeWalker.exe` in it. Loadout checks it holds `CodeWalker.Core.dll` and the SharpDX files.
+
+The bridge is built against a pinned CodeWalker commit. If your CodeWalker is much older or newer, game-file jobs may report that CodeWalker isn't compatible.
 
 ## What it does
 
-- **Works from a vanilla pack, not your live game files** (see [Vanilla pack](#vanilla-pack)). The original sounds and gun data live in the app's own folder, so sound mods in your game never change what ▶ Original plays, and a pack the app made works on any PC, with or without GTA V. Game files are read with [CodeWalker](https://github.com/dexyfex/CodeWalker)'s library, which is bundled with the app. Nothing in your game folder is changed.
+- **Works from a vanilla pack, not your live game files** (see [Vanilla pack](#vanilla-pack)). The original sounds and gun data live in Loadout's own folder, so sound mods in your game never change what ▶ Original plays, and a vanilla pack works on any PC, with or without GTA V. Game files are read with [CodeWalker](https://github.com/dexyfex/CodeWalker), which you download yourself (see [CodeWalker](#codewalker)). Nothing in your game folder is changed.
 - **Lists every gun**, grouped by type and shown with its in-game name. Select one and you see **every file it uses**, under the part of the shot it belongs to (gunshot, rapid fire, distant report, echo, indoor shot, suppressed, casings, heft, reload, slow motion…). Each part says what it does, and each file says what it is and who hears it:
 
   ```
@@ -30,7 +42,7 @@ A desktop app for making **GTA V / FiveM gun sound packs**. It works from a **va
   - fades, gain and peak normalisation
   - resampling (keeps the original rate by default)
   - headroom override
-- **Exports rebuilt game archives**, ready to drag and drop:
+- **Adds your pack to a profile**, or exports rebuilt game archives ready to drag and drop:
 
   ```
   my_gunpack/
@@ -97,11 +109,11 @@ Some sounds aren't referenced by any data: the game code or a script plays them 
 
 Meanings marked "(from the field name)" come from CodeWalker's names for the fields. The data proves the sound is wired to that field, and the ID pack shows exactly when it plays.
 
-Hashes show as `0x…` when their name isn't known. To get more readable names, drop a list of known names (one per line) into the app's data folder as `names.txt` and make the vanilla pack again.
+Hashes show as `0x…` when their name isn't known. To get more readable names, drop a list of known names (one per line) into `%LOCALAPPDATA%\Loadout\soundmaker\names.txt` and make the vanilla pack again.
 
 ## Vanilla pack
 
-The app never reads your live game files while you work. It works from a vanilla pack of GTA V's original gun sounds, kept in its own data folder (`vanilla/`). There are two kinds:
+The app never reads your live game files while you work. It works from a vanilla pack of GTA V's original gun sounds, kept in Loadout's data folder (`soundmaker\vanilla`). There are two kinds:
 
 | Kind                                   | What it holds                                                                                                                                                                                                        | Needs GTA V?                                  |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
@@ -125,30 +137,28 @@ The app never ships Rockstar's files, and a vanilla pack holds Rockstar's files 
 
 ## Installing the pack
 
-- **FiveM:** drag `WEAPONS_PLAYER.rpf` and `RESIDENT.rpf` into `%localappdata%\FiveM\FiveM.app\mods`. To find it: right-click FiveM, choose _Open file location_, then open `FiveM.app\mods`; create the folder if it's missing.
-- **Single player (OpenIV):** put both files in `<GTA V>\mods\x64\audio\sfx`. This needs OpenIV.asi.
+- **With Loadout:** in **Export**, pick a profile under _Add to a Loadout profile_. The archives go into the profile as FiveM mods, and Loadout puts them in FiveM's mods folder when you play that profile and takes them out for the others.
+
+- **By hand, FiveM:** drag `WEAPONS_PLAYER.rpf` and `RESIDENT.rpf` into `%localappdata%\FiveM\FiveM.app\mods`. To find it: right-click FiveM, choose _Open file location_, then open `FiveM.app\mods`; create the folder if it's missing.
+- **By hand, single player (OpenIV):** put both files in `<GTA V>\mods\x64\audio\sfx`. This needs OpenIV.asi.
 - **Don't overwrite the originals** in `<GTA V>\x64\audio\sfx`. The exported archives are unencrypted mod archives, and FiveM refuses to start with modified archives in the game folder.
 - **To go back to vanilla,** delete the files from the mods folder.
 
 Some servers run in pure mode and block client mods. Test with a second player so you hear both your own shots and other players' shots.
 
-## Development
+## How it's built
 
-Requires Node 22, plus the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) and git to build the game-file bridge.
+The sound maker lives in `src/soundmaker/`:
 
-```sh
-npm install
-npm run build:bridge # build the CodeWalker bridge (once, and after changing bridge/)
-npm run dev          # run the app with hot reload
-npm test             # unit tests (Vitest)
-npm run typecheck
-npm run test:e2e     # builds, then runs the Electron smoke test (Playwright); use xvfb-run on headless Linux
-npm run dist:win     # Windows installer + portable exe in release/
-```
-
-Electron (v42+) no longer downloads its binary during install, so this project runs Electron's `install-electron` command on `npm install` and before `npm run dev`/`npm start`. If you still see `Error: Electron uninstall`, run `npx install-electron` once, or delete `node_modules/electron` and reinstall.
-
-To run the optional real-file round-trip tests, point `AWC_SAMPLES_DIR` at a folder of `.awc` files. These files are never committed.
+| Path                 | Contents                                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `core/`              | Pure TypeScript, fully unit-tested: AWC reader/writer, DSP, weapon index, sound graph and preview planner, usage map, ID pack                                                              |
+| `host/`              | The back end (library, vanilla pack, ID pack, project files, export) on a small `Host` interface                                                                                           |
+| `host/tauriHost.ts`  | The Host in the app: Tauri commands (`src-tauri/src/soundmaker.rs` → `loadout-core/src/soundmaker.rs`), which may only write to the sound maker's folder, the temp folder and export files |
+| `host/memoryHost.ts` | An in-memory Host for `pnpm dev` and screenshots                                                                                                                                           |
+| `ui/`                | The React editor, styled under `.soundmaker`                                                                                                                                               |
+| `loadout.ts`         | Adds an export to a profile                                                                                                                                                                |
+| `../../bridge/`      | The .NET 8 CodeWalker bridge                                                                                                                                                               |
 
 ### CodeWalker bridge
 
@@ -162,7 +172,8 @@ To run the optional real-file round-trip tests, point `AWC_SAMPLES_DIR` at a fol
   - Every command that reads sounds takes `--vanilla <dir>`. On its own, it reads a self-contained pack (no `--gta`, no keys). Together with `--gta`, its `WEAPONS_PLAYER.rpf`/`RESIDENT.rpf` replace the install's, including the copies in `update.rpf`.
   - `speak` turns phrases into WAV files with the Windows voices (System.Speech), for the ID pack. It returns `no-tts` elsewhere.
   - All commands output JSON.
-- **Building.** `npm run build:bridge` fetches CodeWalker's source at a pinned commit into `bridge/.codewalker/` (git-ignored) and builds CodeWalker.Core. It then publishes the bridge, with CodeWalker inside, as a self-contained executable in `resources/bridge/`, which electron-builder packages.
+- **Building.** `pnpm build:bridge` fetches CodeWalker's source at a pinned commit into `bridge/.codewalker/` (git-ignored) and builds CodeWalker.Core, only to compile against. It then publishes the bridge as a self-contained executable in `src-tauri/bridge/`. `src-tauri/build.rs` builds that into Loadout's exe, which writes it out to `%LOCALAPPDATA%\Loadout\soundmaker\bridge` on first use (so the portable exe has it too).
+- **CodeWalker isn't shipped.** The bridge loads `CodeWalker.Core.dll`, `SharpDX.dll`, `SharpDX.Mathematics.dll` and `strings.txt` from the player's CodeWalker folder (`--codewalker <dir>`, or `GSM_CODEWALKER`). `probe-codewalker` checks a folder. The tests point `GSM_CODEWALKER` at `bridge/.codewalker/runtime`.
 - **What `scan` produces:**
   - `weapons.meta` → `<Audio>` item → `ItemAudioSettings` (player and NPC variants) → `WeaponSettings` (FireSound, ReportSound, EchoSound, …).
   - The full sound graph behind each of those (Multitrack, Randomized, Envelope, … down to `SimpleSound{ContainerName, FileName}`).
@@ -174,31 +185,12 @@ To run the optional real-file round-trip tests, point `AWC_SAMPLES_DIR` at a fol
     - the game objects whose fields name those sounds, found by reflection over CodeWalker's `dat151` types;
     - animation clip tags in weapon `.ycd` files that name a sound or a sound set entry.
 
-    `src/core/usage.ts` walks it from a stream to every trigger and puts each path into words. `src/core/idpack.ts` builds the ID pack's codes, labels and legend.
+    `src/soundmaker/core/usage.ts` walks it from a stream to every trigger and puts each path into words. `src/soundmaker/core/idpack.ts` builds the ID pack's codes, labels and legend.
 
-- **The preview** (`src/core/soundgraph.ts` → `src/renderer/src/preview.ts`) plans each shot from that graph and renders it with Web Audio.
-- **Tests.** The bridge integration and Electron tests build a fake GTA V folder with unencrypted RPF archives (`make-test-game`). It contains AWC-encrypted banks (with a test key), audio metadata built from `tests/fixtures/game/*.rel.xml` (crossfades, stereo pairs, If branches, sound sets, an explosion, a code-only sound), a `weapons.meta` and a weapon clip dictionary with an audio tag. `src/main/vanilla.test.ts` makes a vanilla pack from it and reads it back with no keys at all, imports zipped and plain packs, and checks that original archives win over a modded install. The tests skip themselves when the bridge isn't built.
+- **The preview** (`src/soundmaker/core/soundgraph.ts` → `src/soundmaker/ui/preview.ts`) plans each shot from that graph and renders it with Web Audio.
+- **Tests.** The bridge integration tests build a fake GTA V folder with unencrypted RPF archives (`make-test-game`). It contains AWC-encrypted banks (with a test key), audio metadata built from `src/soundmaker/test/fixtures/game/*.rel.xml` (crossfades, stereo pairs, If branches, sound sets, an explosion, a code-only sound), a `weapons.meta` and a weapon clip dictionary with an audio tag. `src/soundmaker/host/vanilla.test.ts` makes a vanilla pack from it and reads it back with no keys at all, imports zipped and plain packs, and checks that original archives win over a modded install. The tests skip themselves when the bridge isn't built.
 
-**CodeWalker licensing.** CodeWalker's source is released "for educational purposes only" and has no open-source license. It is bundled here for convenience; get permission from dexyfex before redistributing the app. See `THIRD_PARTY_NOTICES.md`.
-
-### Layout
-
-| Path                                                                  | Contents                                                                                                                                 |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/core/`                                                           | Pure TypeScript with no Electron or DOM dependencies, fully unit-tested                                                                  |
-| `src/core/awc/`                                                       | AWC reader/writer, peak data, IMA ADPCM decoding, stream replacement, CodeWalker XML import                                              |
-| `src/core/dsp.ts`                                                     | Shaping pipeline (trim, fades, normalise, windowed-sinc resampling, dithered 16-bit)                                                     |
-| `src/core/build.ts`                                                   | Applies a project to the template banks (the bridge then packs them into `.rpf` archives)                                                |
-| `src/main/`                                                           | Electron main process: dialogs, template library, project files, export, CodeWalker bridge runner                                        |
-| `src/main/vanilla.ts`                                                 | The vanilla pack store: import (folder or zip), make, and the bridge arguments for reading the original sounds                           |
-| `bridge/`                                                             | .NET 8 CodeWalker bridge: scans the game (weapons, sound graphs, the usage map, banks), extracts and rebuilds archives, speaks ID labels |
-| `bridge/Vanilla.cs`                                                   | Vanilla packs: `--vanilla` sources, `make-vanilla-pack`, `inspect-vanilla`, `zip`/`unzip`                                                |
-| `src/core/usage.ts`, `src/core/fields.ts`                             | What every stream is for, and what each game-object sound field means                                                                    |
-| `src/core/idpack.ts`, `src/main/idPack.ts`                            | The in-game ID pack: codes, spoken/beep labels, bank building within the original size, legend                                           |
-| `src/core/weapons.ts`, `src/core/soundgraph.ts`, `src/core/curves.ts` | Weapon index, gun parts, and the shot planner (distance, categories, curves, envelopes)                                                  |
-| `src/core/describe.ts`                                                | Every file of a gun under its part, with a short description                                                                             |
-| `src/preload/`                                                        | `window.api` bridge (context isolation, sandboxed renderer)                                                                              |
-| `src/renderer/`                                                       | React UI                                                                                                                                 |
+**CodeWalker licensing.** CodeWalker's source is released "for educational purposes only" and has no open-source license, so Loadout doesn't ship it: players download it themselves. See `THIRD_PARTY_NOTICES.md`.
 
 ### AWC format notes
 

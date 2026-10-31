@@ -11,6 +11,11 @@ mods. Press Play and Loadout switches everything over, then joins the server. No
 
 - **Profiles**: graphics and display settings, GTA's in-game settings (FOV, brightness, HUD,
   volumes…), your own sounds and mods, and the server to join, all switched together.
+- **Make your own gun sounds**: the **Sound maker** page lists every gun with every sound file
+  it uses, previews the shot the way the game builds it, swaps in your own WAV/MP3/OGG/FLAC
+  gunshots and rebuilds `WEAPONS_PLAYER.rpf` and `RESIDENT.rpf`. Add them to a profile in one
+  click. It needs [CodeWalker](https://www.gta5-mods.com/tools/codewalker-gtav-interactive-3d-map),
+  which you download yourself. See [docs/sound-maker.md](docs/sound-maker.md).
 - **Find your server**: search the FiveM server list by name or tag, or paste the server's
   `IP:port` or `cfx.re/join` link. Loadout fills in its name and logo and shows them on the
   profile. **Play** applies the profile, then joins the server through FiveM's own
@@ -91,6 +96,7 @@ Then:
 | Mods (`.rpf`)                              | `%LOCALAPPDATA%\FiveM\FiveM.app\mods`         |
 | `WEAPONS_PLAYER.rpf`, `RESIDENT.rpf`       | `<GTA V folder>\x64\audio\sfx`                |
 | Loadout's own data, uploads, backups, logs | `%LOCALAPPDATA%\Loadout`                      |
+| Sound maker library, vanilla pack          | `%LOCALAPPDATA%\Loadout\soundmaker`           |
 
 Loadout only rewrites the values a profile sets, and keeps every other byte of those files as it
 was. Hardware-specific values such as your GPU name, adapter index and replay buffers are never
@@ -169,6 +175,9 @@ crates/loadout-core/   all file logic (no UI): settings.xml patcher, schema & pr
 src-tauri/             the desktop shell: Tauri commands over loadout-core
 src/                   React UI. src/bindings is generated from Rust (ts-rs);
                        src/mock is an in-memory backend for running the UI in a browser
+src/soundmaker/        the sound maker: audio engine, back end and editor (docs/sound-maker.md)
+bridge/                .NET 8 bridge the sound maker runs to read and rebuild game archives
+                       with the player's own CodeWalker
 ```
 
 Prerequisites: Rust (stable), Node 22, pnpm 10. On Linux, also the
@@ -180,6 +189,7 @@ pnpm tauri dev          # run the desktop app
 pnpm dev                # UI only, in a browser, against the mock backend
 cargo test -p loadout-core   # core tests (also regenerates src/bindings)
 pnpm lint && pnpm typecheck && pnpm test
+pnpm build:bridge       # build the sound maker's bridge (needs the .NET 8 SDK and git)
 pnpm tauri build        # Windows installer (run on Windows)
 pnpm build && pnpm screenshots   # re-render the screenshots (needs Chromium)
 ```

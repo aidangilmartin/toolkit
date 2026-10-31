@@ -1,49 +1,39 @@
 /** Where the sound maker meets the rest of Loadout: its profiles. */
 import { api } from "../api";
-import type { ProfileFileKind } from "../api/types";
-import { setSoundFile, type SoundKind } from "../lib/profile";
 import { useApp } from "../store/app";
 import type { ExportArchivesResult } from "./ipc";
 
-const KIND_BY_ARCHIVE: Record<string, SoundKind> = {
-  "weapons_player.rpf": "weaponSounds",
-  "resident.rpf": "residentSounds",
-};
-
-/** The profile sound slot an exported archive fills, if any. */
-export function soundKindOf(file: string): SoundKind | null {
-  return KIND_BY_ARCHIVE[file.toLowerCase()] ?? null;
-}
+const ARCHIVES = ["weapons_player.rpf", "resident.rpf"];
+const stem = (file: string) => file.replace(/\.rpf$/i, "").toLowerCase();
 
 /**
- * Puts a freshly exported pack's WEAPONS_PLAYER.rpf / RESIDENT.rpf into a profile's sound slots,
- * replacing what the profile had there. Returns the slots that changed.
+ * Adds a freshly exported pack's WEAPONS_PLAYER.rpf / RESIDENT.rpf to a profile as mods for
+ * FiveM's mods folder, replacing sound maker archives the profile had. They don't go in the
+ * profile's sound slots: those replace the files in the GTA V folder, and FiveM refuses to start
+ * with rebuilt (unencrypted) archives there.
  */
 export async function addPackToProfile(
   profileId: string,
   exported: ExportArchivesResult,
-): Promise<ProfileFileKind[]> {
+): Promise<string[]> {
   const store = useApp.getState();
   const profile = store.profiles.find((p) => p.id === profileId);
   if (!profile) throw new Error("That profile no longer exists.");
-  let packIds = profile.packs;
-  const filled: ProfileFileKind[] = [];
-  const imported = [];
-  for (const archive of exported.archives) {
-    const kind = soundKindOf(archive.file);
-    if (!kind) continue;
-    const pack = await api.importProfileFile(archive.path, kind);
-    imported.push({ kind, pack });
-  }
-  if (imported.length === 0)
+  const archives = exported.archives.filter((a) => ARCHIVES.includes(a.file.toLowerCase()));
+  if (archives.length === 0)
     throw new Error("The export has no WEAPONS_PLAYER.rpf or RESIDENT.rpf to add.");
-  await store.refresh("packs");
-  const packs = useApp.getState().packs;
-  for (const { kind, pack } of imported) {
-    packIds = setSoundFile(packIds, packs, kind, pack.id);
-    filled.push(kind);
-  }
-  await api.saveProfile({ ...profile, packs: packIds });
-  await useApp.getState().refresh("profiles", "status");
-  return filled;
+
+  const added = [];
+  for (const archive of archives) added.push(await api.importProfileFile(archive.path, "mod"));
+
+  // a mod named like one of the new archives is an older export: the new one replaces it
+  const replaced = new Set(archives.map((a) => stem(a.file)));
+  const packs = store.packs;
+  const kept = profile.packs.filter((id) => {
+    const pack = packs.find((p) => p.id === id);
+    return !(pack?.profileFile === "mod" && replaced.has(pack.name.toLowerCase()));
+  });
+  await api.saveProfile({ ...profile, packs: [...kept, ...added.map((p) => p.id)] });
+  await useApp.getState().refresh("packs", "profiles", "status");
+  return archives.map((a) => a.file);
 }

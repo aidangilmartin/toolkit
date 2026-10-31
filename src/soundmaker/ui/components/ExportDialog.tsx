@@ -151,14 +151,14 @@ export function ExportDialog({ project, onChange, onBuild, onExport, onClose }: 
             <h3>Add to a Loadout profile</h3>
             {addedTo ? (
               <p className="ok small">
-                ✓ Added to “{addedTo}”. Its weapon sounds are yours next time you press Play.
+                ✓ Added to “{addedTo}”. Your gun sounds play next time you press Play on it.
               </p>
             ) : (
               <>
                 <p className="muted small">
-                  Puts the archives in the profile's sound slots, replacing the ones it had. Loadout
-                  installs them when you play that profile and puts the originals back for the
-                  others.
+                  Adds the archives to the profile as FiveM mods, replacing ones you added from here
+                  before. Loadout puts them in FiveM's mods folder when you play that profile and
+                  takes them out for the others.
                 </p>
                 <div className="row gap">
                   <select

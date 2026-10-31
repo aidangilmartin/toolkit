@@ -5,6 +5,5 @@ src/bindings
 src/mock/schema.json
 pnpm-lock.yaml
 Cargo.lock
-soundpack-legacy
 bridge/.codewalker
 src-tauri/bridge
