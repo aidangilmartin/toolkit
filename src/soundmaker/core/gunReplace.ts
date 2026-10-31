@@ -3,10 +3,10 @@
  * takes it as it is; the distant report, the echo, the indoor and the suppressed shot get versions
  * of it made here (filtered, with reverb), so far-away shots and echoes don't stay vanilla.
  *
- * Only this gun's own files change unless asked: files other guns fire too are left out by default.
+ * Only this gun's own files change unless asked: files other guns use too are left out by default.
  */
 
-import { shotSharing, type GunSection } from "./describe";
+import type { GunSection } from "./describe";
 import { dbToGain, peak, toInt16 } from "./dsp";
 import type { StreamRef } from "./project";
 import { encodeWav16Channels, type AudioData } from "./wav";
@@ -77,7 +77,8 @@ export function planGunReplace(
     for (const f of section.files) {
       const ref = { pack: f.pack, file: f.bank, streamId: f.streamId };
       const key = refKey(ref);
-      const others = shotSharing(f);
+      // any use by another gun counts here, not only its shot: one drop shouldn't reach other guns
+      const others = f.sharedWith;
       if (others.length) {
         shared.set(key, ref);
         others.forEach((o) => sharedGuns.add(o.gun));
