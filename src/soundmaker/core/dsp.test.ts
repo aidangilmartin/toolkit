@@ -60,6 +60,14 @@ describe("dsp", () => {
     expect(clipped).toBe(2);
   });
 
+  it("keeps a low template rate (the game's ~3 kHz sub layers), but not a chosen one", () => {
+    const audio = { sampleRate: 48000, channels: [tone(4800, 48000, 100)] };
+    expect(shapeAudio(audio, DEFAULT_SHAPE, 3004).sampleRate).toBe(3004);
+    expect(() => shapeAudio(audio, { ...DEFAULT_SHAPE, sampleRate: 3004 }, 32000)).toThrow(
+      /outside 8000/,
+    );
+  });
+
   it("shapes a source: trim, normalize, fade, length, rate", () => {
     const rate = 48000;
     const x = new Float32Array(rate);

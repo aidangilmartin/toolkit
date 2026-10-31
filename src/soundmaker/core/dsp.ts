@@ -143,6 +143,9 @@ export interface ShapeResult {
  * Turns a decoded source into the mono 16-bit wave written to a stream:
  * channel → trim → offset → max length → resample → normalize → gain → fades → 16-bit.
  */
+/** The lowest stream rate kept as is (melee.awc has ~2 kHz streams). */
+export const MIN_TEMPLATE_RATE = 1000;
+
 export function shapeAudio(audio: AudioData, s: ShapeSettings, templateRate: number): ShapeResult {
   let x = pickChannel(audio, s.channel);
   const srcRate = audio.sampleRate;
@@ -153,8 +156,11 @@ export function shapeAudio(audio: AudioData, s: ShapeSettings, templateRate: num
   x = x.slice(Math.min(start, x.length), Math.max(Math.min(start, x.length), end));
 
   const rate = Math.round(s.sampleRate === "template" ? templateRate : s.sampleRate);
-  if (!(rate >= 8000 && rate <= 65535))
-    throw new Error(`Output sample rate ${rate} Hz is outside 8000–65535 Hz.`);
+  // the game's own low layers (sub-bass "thump" streams) run as low as ~2 kHz; keeping their rate
+  // keeps them the low layer they were. A rate you choose yourself must be a usual one.
+  const min = s.sampleRate === "template" ? MIN_TEMPLATE_RATE : 8000;
+  if (!(rate >= min && rate <= 65535))
+    throw new Error(`Output sample rate ${rate} Hz is outside ${min}–65535 Hz.`);
   x = resample(x, srcRate, rate);
 
   let g = dbToGain(s.gainDb);
