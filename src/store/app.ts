@@ -13,7 +13,11 @@ import type {
 } from "../api/types";
 
 export type View =
-  { name: "home" } | { name: "profile"; id: string } | { name: "backups" } | { name: "settings" };
+  | { name: "home" }
+  | { name: "profile"; id: string }
+  | { name: "sounds" }
+  | { name: "backups" }
+  | { name: "settings" };
 
 /** What to do once a profile has been applied. */
 export type AfterApply = { kind: "launch" } | { kind: "connect"; address: string } | null;

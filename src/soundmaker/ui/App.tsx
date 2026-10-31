@@ -582,11 +582,9 @@ export function App() {
   const changedCount = project.banks.reduce((n, b) => n + b.assignments.length, 0);
 
   useEffect(() => {
-    document.title = `${dirty ? "• " : ""}${projectTitle} — Gun Soundpack Maker`;
-  }, [dirty, projectTitle]);
-
-  useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
+      // Loadout keeps the editor mounted on other pages; only handle keys while it's showing
+      if (!document.querySelector(".soundmaker")?.getClientRects().length) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         void saveProj(e.shiftKey);
@@ -693,7 +691,7 @@ export function App() {
           <span className="logo" aria-hidden>
             ◉
           </span>
-          Gun Soundpack Maker
+          Sound maker
         </div>
         <nav className="tabs" role="tablist" aria-label="View">
           <button

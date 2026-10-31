@@ -81,6 +81,16 @@ try {
   await shot("profile-ingame");
   await page.getByRole("button", { name: "Back", exact: true }).click();
 
+  await nav("Sound maker");
+  await page.getByRole("heading", { name: "Set up the sound maker" }).waitFor();
+  await shot("sound-maker-setup");
+  await page
+    .getByRole("region", { name: "CodeWalker" })
+    .getByRole("button", { name: "Choose folder…" })
+    .click();
+  await page.getByText(/CodeWalker found/).waitFor();
+  await shot("sound-maker-codewalker");
+
   await nav("Backups");
   await shot("backups");
   await nav("Settings");

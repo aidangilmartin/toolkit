@@ -1,5 +1,5 @@
 import { LoaderCircle, TriangleAlert } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Toaster } from "sonner";
 
 import { Sidebar } from "./components/Sidebar";
@@ -14,6 +14,9 @@ import { SetupWizard } from "./features/setup/SetupWizard";
 import { UpdateDialog } from "./features/update/UpdateDialog";
 import { useApp } from "./store/app";
 
+// The sound maker is big (audio engine, editor); load it the first time it's opened.
+const SoundMakerPage = lazy(() => import("./soundmaker/SoundMakerPage"));
+
 export default function App() {
   const loaded = useApp((s) => s.loaded);
   const loadError = useApp((s) => s.loadError);
@@ -22,6 +25,9 @@ export default function App() {
   const pendingView = useApp((s) => s.pendingView);
   const autoUpdateCheck = useApp((s) => s.config?.checkForUpdates ?? false);
   const checkedForUpdate = useRef(false);
+  // Once opened, the sound maker stays mounted so switching pages keeps an unsaved project.
+  const [soundMakerOpened, setSoundMakerOpened] = useState(false);
+  if (view.name === "sounds" && !soundMakerOpened) setSoundMakerOpened(true);
 
   useEffect(() => {
     void useApp.getState().init();
@@ -67,11 +73,18 @@ export default function App() {
       {setupComplete ? (
         <div className="flex h-full">
           <Sidebar />
-          <main className="min-w-0 flex-1 overflow-y-auto">
+          <main className="relative min-w-0 flex-1 overflow-y-auto">
             {view.name === "home" && <HomePage />}
             {view.name === "profile" && <ProfileEditor key={view.id} profileId={view.id} />}
             {view.name === "backups" && <BackupsPage />}
             {view.name === "settings" && <SettingsPage />}
+            {soundMakerOpened && (
+              <div className={view.name === "sounds" ? "absolute inset-0" : "hidden"}>
+                <Suspense fallback={null}>
+                  <SoundMakerPage />
+                </Suspense>
+              </div>
+            )}
           </main>
         </div>
       ) : (

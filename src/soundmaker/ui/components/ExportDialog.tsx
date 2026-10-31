@@ -4,6 +4,8 @@ import { PACK_ARCHIVES, sanitizePackName } from "../../core/pack";
 import type { Project } from "../../core/project";
 import type { ExportArchivesResult } from "../../ipc";
 import { cleanError, fmtBytes } from "../model";
+import { useApp } from "../../../store/app";
+import { addPackToProfile } from "../../loadout";
 import { soundApi } from "../api";
 
 interface Props {
@@ -20,7 +22,10 @@ const ARCHIVE_ROLE: Record<string, string> = {
 };
 
 export function ExportDialog({ project, onChange, onBuild, onExport, onClose }: Props) {
-  const [busy, setBusy] = useState<"build" | "export" | null>("build");
+  const [busy, setBusy] = useState<"build" | "export" | "profile" | null>("build");
+  const profiles = useApp((s) => s.profiles);
+  const [profileId, setProfileId] = useState<string>("");
+  const [addedTo, setAddedTo] = useState<string | null>(null);
   const [progress, setProgress] = useState("");
   const [result, setResult] = useState<BuildResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,27 @@ export function ExportDialog({ project, onChange, onBuild, onExport, onClose }: 
     }
   };
 
+  const addToProfile = async (): Promise<void> => {
+    const profile = profiles.find((p) => p.id === profileId);
+    if (!result || !profile) return;
+    setBusy("profile");
+    setError(null);
+    setProgress("");
+    try {
+      const built = await soundApi.exportToLoadout(
+        sanitizePackName(project.resourceName),
+        result.banks.map((b) => ({ pack: b.pack, file: b.file, bytes: b.bytes })),
+      );
+      if (built.errors.length) throw new Error(built.errors.join("\n"));
+      await addPackToProfile(profile.id, built);
+      setAddedTo(profile.name);
+    } catch (e) {
+      setError(cleanError(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const name = sanitizePackName(project.resourceName);
 
   return (
@@ -69,7 +95,7 @@ export function ExportDialog({ project, onChange, onBuild, onExport, onClose }: 
             className="icon-btn"
             onClick={onClose}
             aria-label="Close"
-            disabled={busy === "export"}
+            disabled={busy === "export" || busy === "profile"}
           >
             ✕
           </button>
@@ -120,6 +146,47 @@ export function ExportDialog({ project, onChange, onBuild, onExport, onClose }: 
           </div>
         )}
 
+        {result && profiles.length > 0 && !exported && (
+          <section className="setup-option" aria-label="Add to a Loadout profile">
+            <h3>Add to a Loadout profile</h3>
+            {addedTo ? (
+              <p className="ok small">
+                ✓ Added to “{addedTo}”. Its weapon sounds are yours next time you press Play.
+              </p>
+            ) : (
+              <>
+                <p className="muted small">
+                  Puts the archives in the profile's sound slots, replacing the ones it had. Loadout
+                  installs them when you play that profile and puts the originals back for the
+                  others.
+                </p>
+                <div className="row gap">
+                  <select
+                    value={profileId}
+                    onChange={(e) => setProfileId(e.target.value)}
+                    disabled={!!busy}
+                    aria-label="Profile"
+                  >
+                    <option value="">Choose a profile…</option>
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn primary"
+                    onClick={() => void addToProfile()}
+                    disabled={!profileId || !!busy}
+                  >
+                    {busy === "profile" ? "Adding…" : "Add to profile"}
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
         {exported && (
           <div className="build-result">
             <p className="ok">
@@ -168,7 +235,11 @@ export function ExportDialog({ project, onChange, onBuild, onExport, onClose }: 
               {busy === "build" ? "Preparing your sounds…" : progress || "Rebuilding archives…"}
             </span>
           )}
-          <button className="btn" onClick={onClose} disabled={busy === "export"}>
+          <button
+            className="btn"
+            onClick={onClose}
+            disabled={busy === "export" || busy === "profile"}
+          >
             {exported ? "Done" : "Close"}
           </button>
           {!exported && (

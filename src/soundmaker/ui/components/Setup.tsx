@@ -121,9 +121,9 @@ export function Setup({ mode, onDone, onClose }: Props) {
         )}
       </header>
       <p className="muted">
-        The app works from a <b>vanilla pack</b>: GTA V's original gun sounds, kept in the app's own
-        folder. Your game files aren't read while you work, so sound mods in your game never change
-        what ▶ Original plays.
+        The sound maker works from a <b>vanilla pack</b>: GTA V's original gun sounds, kept in
+        Loadout's own folder. Your game files aren't read while you work, so sound mods in your game
+        never change what ▶ Original plays.
       </p>
 
       {settings?.bridgeAvailable === false && (
@@ -204,7 +204,7 @@ export function Setup({ mode, onDone, onClose }: Props) {
       )}
 
       <section className="setup-option">
-        <h3>Use a vanilla pack</h3>
+        <h3>{codeWalker || status?.kind ? "Use a vanilla pack" : "2. Use a vanilla pack…"}</h3>
         <p className="muted small">
           A pack this app made (a folder, or a .zip of one: works on any PC, with or without GTA V),
           or original <span className="mono">WEAPONS_PLAYER.rpf</span> /{" "}
@@ -225,7 +225,13 @@ export function Setup({ mode, onDone, onClose }: Props) {
       </section>
 
       <section className="setup-option">
-        <h3>{archivesOnly ? "GTA V folder" : "Make one from GTA V"}</h3>
+        <h3>
+          {archivesOnly
+            ? "GTA V folder"
+            : codeWalker
+              ? "Make one from GTA V"
+              : "…or make one from GTA V"}
+        </h3>
         <p className="muted small">
           {archivesOnly
             ? "Original archives need your GTA V install for the decryption keys and the gun data. Making a pack from it gives you one that works without GTA V."
