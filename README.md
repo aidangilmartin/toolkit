@@ -109,8 +109,10 @@ its settings.
 - **Joining without a restart**: FiveM restarts itself when a server needs a different game build
   (`sv_enforceGameBuild`), pure mode (`sv_pureLevel`), pool sizes (`sv_poolSizesIncrease`) or
   game executable (`sv_defaultGameBuild`). When FiveM is closed, Play reads these from the
-  server's own `/info.json` (the same file FiveM checks). It sets `PoolSizesIncrease` and
-  `DefaultBuild` in `CitizenFX.ini` and starts FiveM with the `-b` (build) and `-pure_` options,
+  server's own `/info.json` (the same file FiveM checks; `cfx.re/join` codes are resolved through
+  cfx.re's `X-CitizenFX-Url`, as FiveM does). Pool sizes are trimmed to cfx.re's pool size limits,
+  as FiveM trims them before comparing. It sets `PoolSizesIncrease`, `DefaultBuild` and
+  `PureLevel` in `CitizenFX.ini` and starts FiveM with the `-b` (build) and `-pure_` options,
   which is exactly what FiveM's own restart does. The connect link carries the same options
   (`fivem://connect/…?-b3095?-pure_1`). If the server can't be reached, FiveM just restarts as
   before. `loadout.log` (Settings → Open logs) shows what the server asked for and the exact
