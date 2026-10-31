@@ -100,7 +100,7 @@ pub fn requirements_from_vars(vars: &serde_json::Value) -> GameRequirements {
             pools
                 .into_iter()
                 .filter_map(|(pool, n)| Some((pool, u32::try_from(n.as_u64()?).ok()?)))
-                .filter(|(pool, n)| !pool.is_empty() && *n > 0)
+                .filter(|(pool, _)| !pool.is_empty())
                 .collect()
         })
         .unwrap_or_default();
@@ -117,9 +117,25 @@ pub fn requirements_from_vars(vars: &serde_json::Value) -> GameRequirements {
     GameRequirements {
         game_build,
         pure_level: number("sv_pureLevel").unwrap_or(0).min(2),
+        // Kept as the server wrote them; `limit_pool_sizes` applies cfx.re's limits.
         pool_sizes,
         exe_build,
     }
+}
+
+/// Trim a server's pool size increases the way FiveM does before comparing them
+/// with its own (`PoolSizeManager::Sanitize`): pools cfx.re doesn't allow are
+/// dropped and the rest capped at their limit. Otherwise FiveM sees different
+/// pools than Loadout set and restarts.
+pub fn limit_pool_sizes(pools: &mut BTreeMap<String, u32>, limits: &BTreeMap<String, u32>) {
+    pools.retain(|pool, n| match limits.get(pool) {
+        None => false,
+        Some(&limit) if *n > limit => {
+            *n = limit;
+            limit > 0
+        }
+        Some(_) => true,
+    });
 }
 
 /// How to start FiveM for a server: command-line options, `[Game]` keys to set
@@ -155,17 +171,26 @@ pub fn launch_setup(req: &GameRequirements) -> LaunchSetup {
             pools = serde_json::to_string(&req.pool_sizes).unwrap_or_default();
         }
     }
+    // FiveM only compares pure mode when the server enforces a build, and its
+    // restart starts without pure mode otherwise.
+    let pure_level = if req.game_build.is_some() {
+        req.pure_level
+    } else {
+        0
+    };
     let mut ini = vec![
         ("PoolSizesIncrease", Some(pools)),
         ("DefaultBuild", Some(exe_build.to_string())),
+        // FiveM's restart saves this too; a plain start of FiveM uses it.
+        ("PureLevel", Some(pure_level.to_string())),
     ];
     // FiveM saves its default build as the last one used when it switches to it.
     if build == FIVEM_DEFAULT_BUILD {
         ini.push(("SavedBuildNumber", Some(build.to_string())));
     }
-    if req.pure_level > 0 {
-        args.push(format!("-pure_{}", req.pure_level));
-        summary.push(format!("pure mode {}", req.pure_level));
+    if pure_level > 0 {
+        args.push(format!("-pure_{pure_level}"));
+        summary.push(format!("pure mode {pure_level}"));
     }
     LaunchSetup { args, ini, summary }
 }
@@ -189,6 +214,30 @@ impl LaunchSetup {
 /// leaving every other line (and its encoding) exactly as it was.
 pub fn update_citizenfx_ini(path: &Path, changes: &[(&str, Option<String>)]) -> crate::Result<()> {
     let bytes = std::fs::read(path).ctx_path("read", path)?;
+    // Windows' ini functions also read UTF-16 files (with a byte order mark);
+    // edit those as text and write them back the same way.
+    let out = match bytes.strip_prefix(&[0xFF, 0xFE]) {
+        Some(utf16) => {
+            let units: Vec<u16> = utf16
+                .chunks_exact(2)
+                .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                .collect();
+            let text = String::from_utf16_lossy(&units);
+            let edited = edit_game_section(text.as_bytes(), changes);
+            let edited = String::from_utf8_lossy(&edited);
+            let mut out = vec![0xFF, 0xFE];
+            out.extend(edited.encode_utf16().flat_map(u16::to_le_bytes));
+            out
+        }
+        None => edit_game_section(&bytes, changes),
+    };
+    if out != bytes {
+        fsutil::write_atomic(path, &out)?;
+    }
+    Ok(())
+}
+
+fn edit_game_section(bytes: &[u8], changes: &[(&str, Option<String>)]) -> Vec<u8> {
     let crlf = bytes.windows(2).any(|w| w == b"\r\n");
     let newline: &[u8] = if crlf { b"\r\n" } else { b"\n" };
     let mut lines: Vec<Vec<u8>> = bytes
@@ -240,10 +289,7 @@ pub fn update_citizenfx_ini(path: &Path, changes: &[(&str, Option<String>)]) -> 
     }
     let mut out = lines.join(newline);
     out.extend_from_slice(newline);
-    if out != bytes {
-        fsutil::write_atomic(path, &out)?;
-    }
-    Ok(())
+    out
 }
 
 #[cfg(test)]
@@ -350,6 +396,7 @@ mod tests {
                     Some("{\"CWeaponComponentInfo\":500}".to_string())
                 ),
                 ("DefaultBuild", Some("3258".to_string())),
+                ("PureLevel", Some("1".to_string())),
             ]
         );
         assert_eq!(
@@ -375,6 +422,7 @@ mod tests {
             [
                 ("PoolSizesIncrease", Some(String::new())),
                 ("DefaultBuild", Some("3570".to_string())),
+                ("PureLevel", Some("0".to_string())),
             ]
         );
 
@@ -388,17 +436,67 @@ mod tests {
             [
                 ("PoolSizesIncrease", Some(String::new())),
                 ("DefaultBuild", Some("3258".to_string())),
+                ("PureLevel", Some("0".to_string())),
                 ("SavedBuildNumber", Some("3258".to_string())),
             ]
         );
         let setup = launch_setup(&GameRequirements {
             exe_build: Some(3570),
+            // Without an enforced build FiveM ignores pure mode (and starts without it).
+            pure_level: 2,
             ..Default::default()
         });
         assert_eq!(setup.args, ["-b3570"]);
         assert_eq!(
             setup.connect_link("1.2.3.4:30120"),
             "fivem://connect/1.2.3.4:30120?-b3570"
+        );
+    }
+
+    #[test]
+    fn limits_pool_sizes_like_fivem() {
+        let limits = BTreeMap::from([
+            ("CWeaponComponentInfo".to_string(), 1000),
+            ("CPed".to_string(), 0),
+            ("CVehicle".to_string(), 50),
+        ]);
+        let mut pools = BTreeMap::from([
+            ("CWeaponComponentInfo".to_string(), 5000), // capped
+            ("CPed".to_string(), 10),                   // not allowed at all
+            ("CVehicle".to_string(), 0),                // kept as it is
+            ("Unknown".to_string(), 1),                 // not on the list
+        ]);
+        limit_pool_sizes(&mut pools, &limits);
+        assert_eq!(
+            pools,
+            BTreeMap::from([
+                ("CVehicle".to_string(), 0),
+                ("CWeaponComponentInfo".to_string(), 1000),
+            ])
+        );
+        // A zero increase is a pool FiveM keeps, so Loadout does too.
+        let req = requirements_from_vars(&serde_json::json!({
+            "sv_enforceGameBuild": "3095",
+            "sv_poolSizesIncrease": "{\"CVehicle\":0}",
+        }));
+        assert_eq!(req.pool_sizes.get("CVehicle"), Some(&0));
+    }
+
+    #[test]
+    fn edits_utf16_ini_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let ini = dir.path().join("CitizenFX.ini");
+        let text = "[Game]\r\nIVPath=D:\\Jeux\\GTA é\r\nDefaultBuild=3095\r\n";
+        let encode = |text: &str| {
+            let mut bytes = vec![0xFF, 0xFE];
+            bytes.extend(text.encode_utf16().flat_map(u16::to_le_bytes));
+            bytes
+        };
+        std::fs::write(&ini, encode(text)).unwrap();
+        update_citizenfx_ini(&ini, &[("DefaultBuild", Some("3258".into()))]).unwrap();
+        assert_eq!(
+            std::fs::read(&ini).unwrap(),
+            encode("[Game]\r\nIVPath=D:\\Jeux\\GTA é\r\nDefaultBuild=3258\r\n")
         );
     }
 
