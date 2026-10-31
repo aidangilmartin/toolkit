@@ -124,9 +124,9 @@ public static class GameScan
                     category = CategoryName(category),
                     settings = settingsHash,
                     roles,
-                    reportVolumeDelta = ws.ReportVolumeDelta,
-                    reportPredelayDelta = ws.ReportPredelayDelta,
-                    tailEnergy = ws.TailEnergyValue
+                    reportVolumeDelta = CodeWalkerCompat.Get(ws, "ReportVolumeDelta"),
+                    reportPredelayDelta = CodeWalkerCompat.Get(ws, "ReportPredelayDelta"),
+                    tailEnergy = CodeWalkerCompat.Get(ws, "TailEnergyValue")
                 });
             }
             foreach (var it in audioItem.Weapons ?? []) AddVariant(it.Category, it.Weapon);

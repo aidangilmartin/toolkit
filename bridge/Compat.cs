@@ -14,6 +14,11 @@ public static class CodeWalkerCompat
 
     public static bool IsWeaponSettings(RelData? rd) => rd is not null && WeaponSettings.IsInstanceOfType(rd);
 
+    /// <summary>A property both builds have under the same name, read by reflection.</summary>
+    public static object? Get(object o, string name) =>
+        (o.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
+         ?? throw new MissingFieldException(o.GetType().Name, name)).GetValue(o);
+
     static Type Find(params string[] names)
     {
         var asm = typeof(RelData).Assembly;
