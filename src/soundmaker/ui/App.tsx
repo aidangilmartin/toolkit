@@ -32,7 +32,13 @@ import {
   type SoundMap,
   type StreamUsage,
 } from "../core/usage";
-import { weaponParts } from "../core/weapons";
+import { weaponLabel, weaponParts } from "../core/weapons";
+import {
+  encodeVersion,
+  renderShotVersion,
+  versionFileName,
+  type ReplacePlan,
+} from "../core/gunReplace";
 import type { AudioData } from "../core/wav";
 import type {
   ExportArchivesResult,
@@ -50,6 +56,7 @@ import { HelpDialog } from "./components/HelpDialog";
 import { IdPackDialog } from "./components/IdPackDialog";
 import { Inspector } from "./components/Inspector";
 import { Setup } from "./components/Setup";
+import { GunReplace } from "./components/GunReplace";
 import { SharedConfirm, whichSounds, type SharedChange } from "./components/SharedConfirm";
 import { Sidebar } from "./components/Sidebar";
 import { WeaponList } from "./components/WeaponList";
@@ -81,6 +88,7 @@ export function App() {
   const [tab, setTab] = useState<Tab>("weapons");
   const [weaponName, setWeaponName] = useState<string | null>(null);
   const [sharedChange, setSharedChange] = useState<SharedChange | null>(null);
+  const [gunReplace, setGunReplace] = useState<SourceEntry | null>(null);
   const [library, setLibrary] = useState<LibraryTemplate[]>([]);
   const [loaded, setLoaded] = useState<Map<string, LoadedTemplate>>(new Map());
   const [loadErrors, setLoadErrors] = useState<Map<string, string>>(new Map());
@@ -314,24 +322,19 @@ export function App() {
   const importCodeWalker = async (paths?: string[]): Promise<void> =>
     handleReport(await soundApi.importCodeWalkerFolders(paths));
 
-  const addSourceFiles = async (files: PickedFile[]): Promise<SourceEntry[]> => {
-    const added: SourceEntry[] = [];
-    for (const f of files) {
-      try {
-        const audio = await decodeAudio(f.name, f.bytes);
-        const frames = audio.channels[0]?.length ?? 0;
-        const info = {
-          id: crypto.randomUUID(),
-          fileName: f.name,
-          channels: audio.channels.length,
-          sampleRate: audio.sampleRate,
-          durationMs: (frames / audio.sampleRate) * 1000,
-        };
-        added.push({ info, bytes: f.bytes, audio });
-      } catch (e) {
-        notify("error", (e as Error).message);
-      }
-    }
+  const sourceEntry = (fileName: string, bytes: Uint8Array, audio: AudioData): SourceEntry => {
+    const frames = audio.channels[0]?.length ?? 0;
+    const info = {
+      id: crypto.randomUUID(),
+      fileName,
+      channels: audio.channels.length,
+      sampleRate: audio.sampleRate,
+      durationMs: (frames / audio.sampleRate) * 1000,
+    };
+    return { info, bytes, audio };
+  };
+
+  const keepSources = (added: SourceEntry[]): void => {
     if (added.length) {
       setSources((m) => {
         const next = new Map(m);
@@ -340,6 +343,18 @@ export function App() {
       });
       setProject((p) => added.reduce((acc, s) => addSource(acc, s.info), p));
     }
+  };
+
+  const addSourceFiles = async (files: PickedFile[]): Promise<SourceEntry[]> => {
+    const added: SourceEntry[] = [];
+    for (const f of files) {
+      try {
+        added.push(sourceEntry(f.name, f.bytes, await decodeAudio(f.name, f.bytes)));
+      } catch (e) {
+        notify("error", (e as Error).message);
+      }
+    }
+    keepSources(added);
     return added;
   };
 
@@ -406,6 +421,40 @@ export function App() {
     const picked = await soundApi.readFiles(audio.map((f) => filePath(f)));
     const [first] = await addSourceFiles(picked);
     if (first) assign(first.info.id, refs, first);
+  };
+
+  /** Opens the whole-gun replace with a dropped file, or one picked from disk. */
+  const startGunReplace = async (file: File | null): Promise<void> => {
+    if (file && !AUDIO_RE.test(file.name))
+      return notify("error", "Drop an audio file (WAV, MP3, OGG, FLAC).");
+    const picked = file
+      ? await soundApi.readFiles([filePath(file)])
+      : (await soundApi.pickAudioFiles()).slice(0, 1);
+    const [first] = await addSourceFiles(picked);
+    if (first) setGunReplace(first);
+  };
+
+  /** Fills each part of the gun with its version of the shot (kept as source files of their own). */
+  const replaceGun = (src: SourceEntry, plan: ReplacePlan): void => {
+    setGunReplace(null);
+    const made: SourceEntry[] = [];
+    for (const group of plan.groups) {
+      let entry = src;
+      if (group.kind !== "shot") {
+        const audio = renderShotVersion(src.audio, group.kind);
+        const name = versionFileName(src.info.fileName, group.kind);
+        entry = sourceEntry(name, encodeVersion(audio), audio);
+        made.push(entry);
+      }
+      assignNow(entry, group.refs);
+    }
+    keepSources(made);
+    const files = plan.groups.reduce((n, g) => n + g.refs.length, 0);
+    notify(
+      "info",
+      `Replaced ${files} ${files === 1 ? "file" : "files"} of the ${weapon ? weaponLabel(weapon) : "gun"}` +
+        (made.length ? ` and made ${made.map((m) => m.info.fileName).join(", ")}.` : "."),
+    );
   };
 
   const onWindowDrop = async (e: DragEvent): Promise<void> => {
@@ -788,6 +837,7 @@ export function App() {
               onSelect={select}
               onPlayPart={play}
               onDropFiles={(files, refs) => void dropFilesOnStreams(files, refs)}
+              onReplaceGun={(file) => void startGunReplace(file)}
               onError={(m) => notify("error", m)}
             />
           ) : (
@@ -890,6 +940,16 @@ export function App() {
       )}
       {dialog === "rescan" && (
         <Setup mode="rescan" onDone={(r) => void onScanned(r)} onClose={() => setDialog(null)} />
+      )}
+      {gunReplace && weapon && (
+        <GunReplace
+          gun={weaponLabel(weapon)}
+          source={gunReplace}
+          sections={gunSections}
+          playing={playing}
+          onClose={() => setGunReplace(null)}
+          onReplace={(plan) => replaceGun(gunReplace, plan)}
+        />
       )}
       {sharedChange && (
         <SharedConfirm

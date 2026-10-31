@@ -876,3 +876,30 @@
 .soundmaker .preview-note {
   margin: 6px 0 0;
 }
+
+/* one-drop gun replace */
+.soundmaker .bank-header.drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+.soundmaker .gun-replace {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.soundmaker .gun-replace-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.soundmaker .gun-replace-list li {
+  align-items: center;
+}
+.soundmaker .gun-replace-list .grow-end {
+  margin-left: auto;
+}

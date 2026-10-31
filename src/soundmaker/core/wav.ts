@@ -98,6 +98,29 @@ export function parseWav(bytes: Uint8Array): ParsedWav {
   return { sampleRate, channels: out, bitsPerSample: bits, int16 };
 }
 
+/** 16-bit PCM WAV with any number of channels (all the same length), interleaved. */
+export function encodeWav16Channels(channels: Int16Array[], sampleRate: number): Uint8Array {
+  const n = channels.length;
+  const frames = channels[0]?.length ?? 0;
+  const bytes = frames * n * 2;
+  const w = new ByteWriter(44 + bytes);
+  w.ascii("RIFF");
+  w.u32(36 + bytes);
+  w.ascii("WAVE");
+  w.ascii("fmt ");
+  w.u32(16);
+  w.u16(WAVE_FORMAT_PCM);
+  w.u16(n);
+  w.u32(sampleRate);
+  w.u32(sampleRate * n * 2);
+  w.u16(n * 2);
+  w.u16(16);
+  w.ascii("data");
+  w.u32(bytes);
+  for (let i = 0; i < frames; i++) for (const c of channels) w.i16(c[i]);
+  return w.toBytes();
+}
+
 /** 16-bit mono PCM WAV. */
 export function encodeWav16(pcm: Int16Array, sampleRate: number): Uint8Array {
   const w = new ByteWriter(44 + pcm.length * 2);

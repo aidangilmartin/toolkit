@@ -53,6 +53,8 @@ interface Props {
   onSelect: (refs: StreamRef[], focus: StreamRef | null) => void;
   onPlayPart: (ref: StreamRef, which: "original" | "new") => void;
   onDropFiles: (files: File[], refs: StreamRef[]) => void;
+  /** One gunshot for the whole gun: dropped on the header, or picked (no file) from the button. */
+  onReplaceGun: (file: File | null) => void;
   onError: (message: string) => void;
 }
 
@@ -100,6 +102,7 @@ export function WeaponView(props: Props) {
   } | null>(null);
   const [recording, setRecording] = useState<Recording | null>(null);
   const [dropRole, setDropRole] = useState<string | null>(null);
+  const [dropGun, setDropGun] = useState(false);
   const originals = useRef(new Map<string, ResolvedWave>());
   const shaped = useRef(new Map<string, ResolvedWave>());
 
@@ -267,7 +270,21 @@ export function WeaponView(props: Props) {
 
   return (
     <section className="bank-view weapon-view">
-      <header className="bank-header">
+      <header
+        className={`bank-header${dropGun ? " drop" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDropGun(true);
+        }}
+        onDragLeave={() => setDropGun(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDropGun(false);
+          const [file] = [...e.dataTransfer.files];
+          if (file) props.onReplaceGun(file);
+        }}
+      >
         <div>
           <h2>{weaponLabel(weapon)}</h2>
           <p className="muted small">
@@ -282,6 +299,16 @@ export function WeaponView(props: Props) {
               same sounds: changing one changes {twins.length === 1 ? "both" : "all of them"}.
             </p>
           )}
+        </div>
+        <div className="gun-replace">
+          <button
+            className="btn"
+            onClick={() => props.onReplaceGun(null)}
+            title="Use one gunshot for this whole gun: the far-away and echo parts get versions made from it"
+          >
+            Replace whole gun…
+          </button>
+          <span className="muted small">or drop a gunshot here</span>
         </div>
       </header>
 
