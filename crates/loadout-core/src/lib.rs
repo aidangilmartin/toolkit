@@ -16,6 +16,7 @@ pub mod schema;
 pub mod server_list;
 pub mod servers;
 pub mod settings_xml;
+pub mod soundmaker;
 pub mod store;
 #[cfg(test)]
 mod test_http;

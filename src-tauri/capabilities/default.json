@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions for the main window. File access happens in Rust commands, not from the web view.",
+  "description": "Permissions for the main window. File access happens in Rust commands (the sound maker may only write to its own folders and export files), not from the web view.",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-save", "dialog:allow-ask"]
 }

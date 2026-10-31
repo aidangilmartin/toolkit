@@ -1,5 +1,6 @@
 mod commands;
 mod shell;
+mod soundmaker;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -87,6 +88,12 @@ pub fn run() {
                 Box::new(SystemProcesses),
             )?;
             log::info!("Loadout started, data in {}", data_dir.display());
+            let sound_maker = loadout_core::soundmaker::SoundMaker::new(
+                data_dir.join("soundmaker"),
+                soundmaker::bridge_source(),
+            );
+            sound_maker.clean_up();
+            app.manage(soundmaker::SoundMakerState(Arc::new(sound_maker)));
             app.manage(AppState {
                 core: Arc::new(core),
                 update: Default::default(),
@@ -125,6 +132,19 @@ pub fn run() {
             commands::check_for_update,
             commands::install_update,
             commands::open_release_page,
+            soundmaker::sm_info,
+            soundmaker::sm_stat,
+            soundmaker::sm_read_dir,
+            soundmaker::sm_read_file,
+            soundmaker::sm_write_file,
+            soundmaker::sm_mkdir,
+            soundmaker::sm_remove,
+            soundmaker::sm_rename,
+            soundmaker::sm_copy,
+            soundmaker::sm_make_temp_dir,
+            soundmaker::sm_run_bridge,
+            soundmaker::sm_show_in_folder,
+            soundmaker::sm_open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Loadout");
