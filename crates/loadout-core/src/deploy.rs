@@ -80,6 +80,10 @@ pub struct Prepared {
     kept: Vec<DeployedFile>,
     /// Old original backups that become stale once this apply commits.
     stale_originals: Vec<String>,
+    /// Original backups of files something else changed or deleted since they were installed.
+    /// They're kept (moved to `originals/superseded`), never deleted: the outside change may not be
+    /// a genuine game file (e.g. a mod copied in by hand), and they can be the only real original.
+    superseded_originals: Vec<String>,
     applied: AppliedSettings,
     profile_id: Option<String>,
     label: String,
@@ -314,6 +318,7 @@ pub fn prepare(
     let mut file_plans = Vec::new();
     let mut kept = Vec::new();
     let mut stale_originals = Vec::new();
+    let mut superseded_originals = Vec::new();
     let mut matched = vec![false; desired.len()];
     let mut remove_ops = Vec::new();
     let mut install_ops = Vec::new();
@@ -342,11 +347,11 @@ pub fn prepare(
                 let (backup_existing, ours, keep_original, note) = match current {
                     Current::Ours => (false, Some(ours_src.clone()), entry.original.clone(), None),
                     Current::Changed => {
-                        stale_originals.extend(entry.original.iter().map(|o| o.file.clone()));
+                        superseded_originals.extend(entry.original.iter().map(|o| o.file.clone()));
                         (true, None, None, Some("Changed by something else since it was installed (probably a FiveM update or a game file check). That version is kept as the new original.".to_string()))
                     }
                     Current::Missing => {
-                        stale_originals.extend(entry.original.iter().map(|o| o.file.clone()));
+                        superseded_originals.extend(entry.original.iter().map(|o| o.file.clone()));
                         (
                             false,
                             None,
@@ -405,7 +410,7 @@ pub fn prepare(
                 });
             }
             (None, current) => {
-                stale_originals.extend(entry.original.iter().map(|o| o.file.clone()));
+                superseded_originals.extend(entry.original.iter().map(|o| o.file.clone()));
                 file_plans.push(FileOpPlan {
                     kind: FileOpKind::Forget,
                     root: entry.root,
@@ -503,6 +508,14 @@ pub fn prepare(
             .iter()
             .any(|k| k.original.as_ref().is_some_and(|o| &o.file == f))
     });
+    superseded_originals.sort();
+    superseded_originals.dedup();
+    superseded_originals.retain(|f| {
+        !stale_originals.contains(f)
+            && !kept
+                .iter()
+                .any(|k| k.original.as_ref().is_some_and(|o| &o.file == f))
+    });
 
     let label = match profile {
         Some(p) => format!("Before applying \"{}\"", p.name),
@@ -523,6 +536,7 @@ pub fn prepare(
         ops,
         kept,
         stale_originals,
+        superseded_originals,
         applied,
         profile_id: profile.map(|p| p.id.clone()),
         label,
@@ -575,9 +589,14 @@ struct Journal {
     steps: Vec<Step>,
     /// Old backups to delete once the new ledger is in place.
     delete_on_commit: Vec<String>,
+    /// Old backups to move to `originals/superseded` once the new ledger is in place.
+    #[serde(default)]
+    keep_on_commit: Vec<String>,
 }
 
 const JOURNAL: &str = "journal.json";
+/// Where original backups of files changed outside Loadout are kept (under `originals`).
+pub const SUPERSEDED: &str = "superseded";
 const NEW_STATE: &str = "state.new.json";
 
 fn save_journal(dir: &Path, journal: &Journal) -> Result<()> {
@@ -638,6 +657,11 @@ pub fn execute(
             .collect(),
         delete_on_commit: prepared
             .stale_originals
+            .iter()
+            .map(|f| store.originals_dir().join(f).display().to_string())
+            .collect(),
+        keep_on_commit: prepared
+            .superseded_originals
             .iter()
             .map(|f| store.originals_dir().join(f).display().to_string())
             .collect(),
@@ -936,6 +960,16 @@ fn finish_commit(
     for file in &journal.delete_on_commit {
         let _ = fsutil::remove_file_if_exists(Path::new(file));
     }
+    if !journal.keep_on_commit.is_empty() {
+        let dir = store.originals_dir().join(SUPERSEDED);
+        let _ = fs::create_dir_all(&dir);
+        for file in &journal.keep_on_commit {
+            let from = Path::new(file);
+            if let Some(name) = from.file_name() {
+                let _ = fs::rename(from, dir.join(name));
+            }
+        }
+    }
     let mut snapshot_files = Vec::new();
     for (step, op) in journal.steps.iter().zip(&prepared.ops) {
         if let (Op::Settings { target, path, .. }, PreImage::Saved(copy)) = (op, &step.pre) {
@@ -1020,6 +1054,9 @@ fn remove_orphaned_originals(store: &Store) {
         .flatten()
         .flatten()
     {
+        if !entry.path().is_file() {
+            continue; // `superseded` and the like
+        }
         let name = entry.file_name().to_string_lossy().into_owned();
         if !referenced.contains(name.as_str()) {
             log::info!("Removing orphaned backup {name}");

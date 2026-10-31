@@ -178,7 +178,19 @@ impl World {
     fn originals_count(&self) -> usize {
         fs::read_dir(self.app.data_dir().join("backups/originals"))
             .unwrap()
+            .flatten()
+            .filter(|e| e.path().is_file())
             .count()
+    }
+
+    /// Original backups kept after something else changed the installed file.
+    fn superseded(&self) -> Vec<Vec<u8>> {
+        fs::read_dir(self.app.data_dir().join("backups/originals/superseded"))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .map(|e| fs::read(e.path()).unwrap())
+            .collect()
     }
 }
 
@@ -470,6 +482,9 @@ fn fivem_updates_and_in_game_changes_are_detected() {
     assert_eq!(forget.kind, FileOpKind::Forget);
     w.app.apply(Some(&rp), &mut |_| {}).unwrap();
     assert_eq!(fs::read(&visuals).unwrap(), b"fivem v2 visuals");
+    // the original it replaced is kept, not deleted: the outside change may not be a real game
+    // file (e.g. a mod copied in by hand), and this can be the only copy of the real one
+    assert_eq!(w.superseded().len(), 1);
 
     // Switching back backs up the *new* file as the original, and vanilla restores it.
     w.app.apply(Some(&arena), &mut |_| {}).unwrap();
