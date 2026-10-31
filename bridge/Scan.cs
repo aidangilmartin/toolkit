@@ -36,7 +36,7 @@ public static class GameScan
         ["InteriorShotSound"] = "interior"
     };
 
-    static readonly PropertyInfo[] WeaponSoundFields = typeof(Dat151WeaponSettings)
+    static readonly PropertyInfo[] WeaponSoundFields = CodeWalkerCompat.WeaponSettings
         .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
         .Where(p => p.PropertyType == typeof(MetaHash))
         .ToArray();
@@ -115,7 +115,8 @@ public static class GameScan
             void AddVariant(uint category, uint settingsHash)
             {
                 if (settingsHash == 0 || !seen.Add(settingsHash)) return;
-                if (!game.TryGetValue(settingsHash, out var sd) || sd is not Dat151WeaponSettings ws) return;
+                if (!game.TryGetValue(settingsHash, out var sd) || !CodeWalkerCompat.IsWeaponSettings(sd)) return;
+                var ws = sd!;
                 var roles = RolesOf(ws, sounds);
                 foreach (var h in roles.Values) Walk(h, sounds, nodes, containers, usedContainers, missingContainers);
                 variants.Add(new
@@ -220,7 +221,7 @@ public static class GameScan
     }
 
     /// <summary>Every sound field a weapon setting fills in: the 8 shot parts plus handling, slow motion, melee…</summary>
-    static Dictionary<string, uint> RolesOf(Dat151WeaponSettings ws, Dictionary<uint, RelData> sounds)
+    static Dictionary<string, uint> RolesOf(RelData ws, Dictionary<uint, RelData> sounds)
     {
         var roles = new Dictionary<string, uint>();
         foreach (var p in WeaponSoundFields)

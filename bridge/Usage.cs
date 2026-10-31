@@ -378,7 +378,7 @@ public static class SoundUsage
         var rd = ctx.Game.GetValueOrDefault(h);
         var type = rd is Dat151RelData d ? d.Type.ToString() : rd?.GetType().Name ?? "Missing";
         List<object>? weapons = null;
-        if (rd is Dat151WeaponSettings)
+        if (CodeWalkerCompat.IsWeaponSettings(rd))
         {
             weapons = [];
             foreach (var (owner, _) in gameRefs.GetValueOrDefault(h) ?? [])
