@@ -5,7 +5,8 @@
  *
  * 1. Fetches CodeWalker's source at a pinned commit into bridge/.codewalker (git-ignored).
  * 2. Publishes CodeWalker.Core into bridge/.codewalker/runtime — used only to compile the bridge
- *    and, in development, as a stand-in for a CodeWalker install. It is never packaged.
+ *    and, in development and tests, as a stand-in for the player's CodeWalker download
+ *    (GSM_CODEWALKER). It is never packaged: players download CodeWalker themselves.
  * 3. Publishes the bridge as a self-contained single-file executable.
  *
  * Requires git and the .NET 8 SDK. Usage: pnpm build:bridge [--rid win-x64]

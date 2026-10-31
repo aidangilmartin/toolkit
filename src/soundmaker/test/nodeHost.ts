@@ -16,6 +16,9 @@ export const bridgeExe = join(
   process.platform === "win32" ? `${BRIDGE_NAME}.exe` : BRIDGE_NAME,
 );
 
+/** CodeWalker.Core as `pnpm build:bridge` builds it, standing in for the player's CodeWalker download. */
+export const codeWalkerDir = join(repoRoot, "bridge", ".codewalker", "runtime");
+
 /**
  * Runs one bridge command. stdout carries a single JSON result; stderr carries JSON progress
  * lines. Mirrors loadout-core's soundmaker::run_bridge.
@@ -34,7 +37,10 @@ export function runBridge<T>(
     );
   }
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(exe, args, { windowsHide: true });
+    const child = spawn(exe, args, {
+      windowsHide: true,
+      env: { ...process.env, GSM_CODEWALKER: process.env.GSM_CODEWALKER ?? codeWalkerDir },
+    });
     let stdout = "";
     let stderrRest = "";
     const stderrText: string[] = [];

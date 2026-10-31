@@ -80,21 +80,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: cargo test -p loadout-core
-      # The sound maker's bridge bundles CodeWalker, which has no open-source licence (see
-      # THIRD_PARTY_NOTICES.md). It goes into public releases only once the repository variable
-      # BUNDLE_CODEWALKER is "true"; without it, the sound maker says the bridge is missing.
+      # The sound maker's bridge (no CodeWalker inside: players download CodeWalker themselves)
       - uses: actions/setup-dotnet@v4
-        if: vars.BUNDLE_CODEWALKER == 'true'
         with:
           dotnet-version: 8.0.x
-      - name: Build the CodeWalker bridge
-        if: vars.BUNDLE_CODEWALKER == 'true'
-        run: |
-          pnpm build:bridge --rid win-x64
-          echo "LOADOUT_REQUIRE_BRIDGE=1" >> $env:GITHUB_ENV
+      - name: Build the sound maker's bridge
+        run: pnpm build:bridge --rid win-x64
       - name: Build the installer and publish the release
         uses: tauri-apps/tauri-action@v0
         env:
+          LOADOUT_REQUIRE_BRIDGE: "1"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ env.TAG }}

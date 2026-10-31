@@ -118,7 +118,7 @@ public static class Commands
     {
         if (namesLoaded) return;
         namesLoaded = true;
-        foreach (var path in new[] { Path.Combine(AppContext.BaseDirectory, "strings.txt"), extra })
+        foreach (var path in new[] { Program.CodeWalkerDir is { } cw ? Path.Combine(cw, "strings.txt") : null, extra })
         {
             if (path == null || !File.Exists(path)) continue;
             foreach (var line in File.ReadLines(path))

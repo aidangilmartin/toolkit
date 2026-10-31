@@ -5,7 +5,7 @@ fn main() {
     tauri_build::build()
 }
 
-/// Builds the CodeWalker bridge into the exe when `pnpm build:bridge` has put it in
+/// Builds the sound maker's bridge into the exe when `pnpm build:bridge` has put it in
 /// `src-tauri/bridge/`. Without it the app still builds; the sound maker then says the
 /// bridge is missing.
 fn embed_bridge() {
@@ -17,19 +17,13 @@ fn embed_bridge() {
     } else {
         "gunpack-bridge"
     });
-    let strings = dir.join("strings.txt");
     println!("cargo::rerun-if-changed={}", exe.display());
-    println!("cargo::rerun-if-changed={}", strings.display());
-    if exe.is_file() && strings.is_file() {
+    if exe.is_file() {
         println!("cargo::rustc-cfg=embedded_bridge");
         println!("cargo::rustc-env=LOADOUT_BRIDGE_EXE={}", exe.display());
-        println!(
-            "cargo::rustc-env=LOADOUT_BRIDGE_STRINGS={}",
-            strings.display()
-        );
     } else if std::env::var("LOADOUT_REQUIRE_BRIDGE").is_ok() {
         panic!(
-            "LOADOUT_REQUIRE_BRIDGE is set but {} or strings.txt is missing. Run `pnpm build:bridge` first.",
+            "LOADOUT_REQUIRE_BRIDGE is set but {} is missing. Run `pnpm build:bridge` first.",
             exe.display()
         );
     }

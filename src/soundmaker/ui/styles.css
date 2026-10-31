@@ -1,69 +1,42 @@
-:root {
-  --bg: #121418;
-  --bg-raised: #1a1d23;
-  --bg-sunken: #0d0f12;
-  --bg-hover: #232731;
-  --bg-selected: #2a3550;
-  --border: #2b3039;
-  --text: #e6e8ec;
-  --text-muted: #8d95a3;
-  --accent: #f0a23b;
-  --accent-text: #1a1206;
-  --accent-soft: rgba(240, 162, 59, 0.16);
-  --danger: #ef6a6a;
-  --ok: #5fcf8a;
-  --warn: #e8c547;
+.soundmaker {
+  --bg: var(--color-bg);
+  --bg-raised: var(--color-surface);
+  --bg-sunken: #080a0d;
+  --bg-hover: var(--color-surface-3);
+  --bg-selected: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface-2));
+  --border: var(--color-line);
+  --text: var(--color-fg);
+  --text-muted: var(--color-muted);
+  --accent: var(--color-accent);
+  --accent-text: var(--color-accent-ink);
+  --accent-soft: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  --danger: var(--color-danger);
+  --ok: var(--color-accent);
+  --warn: var(--color-warn);
   --wave-original: #7b8496;
-  --wave-new: #f0a23b;
-  --wave-axis: #2b3039;
-  --radius: 6px;
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --wave-new: var(--color-accent);
+  --wave-axis: var(--color-line);
+  --radius: 8px;
+  --font: var(--font-sans);
+  --mono: var(--font-mono);
   color-scheme: dark;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f5f6f8;
-    --bg-raised: #ffffff;
-    --bg-sunken: #eceef2;
-    --bg-hover: #e8ebf0;
-    --bg-selected: #dfe7fb;
-    --border: #d8dce3;
-    --text: #1b1e24;
-    --text-muted: #5e6675;
-    --accent: #c46f00;
-    --accent-text: #ffffff;
-    --accent-soft: rgba(196, 111, 0, 0.12);
-    --danger: #c43c3c;
-    --ok: #1f8a4c;
-    --warn: #9a7b00;
-    --wave-original: #8a93a3;
-    --wave-new: #c46f00;
-    --wave-axis: #d8dce3;
-    color-scheme: light;
-  }
-}
-
-* {
+.soundmaker * {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+.soundmaker {
   height: 100%;
-  margin: 0;
-}
-
-body {
+  position: relative;
   background: var(--bg);
   color: var(--text);
   font: 13px/1.45 var(--font);
   overflow: hidden;
+  user-select: text;
 }
 
-h2 {
+.soundmaker h2 {
   font-size: 18px;
   margin: 0 0 4px;
   display: flex;
@@ -71,13 +44,13 @@ h2 {
   gap: 8px;
 }
 
-h3 {
+.soundmaker h3 {
   font-size: 14px;
   margin: 0 0 8px;
   overflow-wrap: anywhere;
 }
 
-h4 {
+.soundmaker h4 {
   font-size: 12px;
   margin: 0 0 8px;
   text-transform: uppercase;
@@ -85,57 +58,57 @@ h4 {
   color: var(--text-muted);
 }
 
-p {
+.soundmaker p {
   margin: 0 0 8px;
 }
 
-.muted {
+.soundmaker .muted {
   color: var(--text-muted);
 }
-.small {
+.soundmaker .small {
   font-size: 12px;
 }
-.mono {
+.soundmaker .mono {
   font-family: var(--mono);
   font-size: 12px;
 }
-.error {
+.soundmaker .error {
   color: var(--danger);
   white-space: pre-wrap;
 }
-.ok {
+.soundmaker .ok {
   color: var(--ok);
 }
-.center {
+.soundmaker .center {
   text-align: center;
 }
-.pad {
+.soundmaker .pad {
   padding: 16px;
 }
-.row {
+.soundmaker .row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
 }
-.gap {
+.soundmaker .gap {
   gap: 8px;
 }
-.end {
+.soundmaker .end {
   justify-content: flex-end;
 }
 
-input,
-select,
-button {
+.soundmaker input,
+.soundmaker select,
+.soundmaker button {
   font: inherit;
   color: inherit;
 }
 
-input[type='text'],
-input[type='search'],
-input[type='number'],
-input:not([type]),
-select {
+.soundmaker input[type="text"],
+.soundmaker input[type="search"],
+.soundmaker input[type="number"],
+.soundmaker input:not([type]),
+.soundmaker select {
   background: var(--bg-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -143,15 +116,15 @@ select {
   min-width: 0;
 }
 
-input:focus-visible,
-select:focus-visible,
-button:focus-visible,
-.table-wrap:focus-visible {
+.soundmaker input:focus-visible,
+.soundmaker select:focus-visible,
+.soundmaker button:focus-visible,
+.soundmaker .table-wrap:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-.btn {
+.soundmaker .btn {
   background: var(--bg-hover);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -159,32 +132,32 @@ button:focus-visible,
   cursor: pointer;
   white-space: nowrap;
 }
-.btn:hover:not(:disabled) {
+.soundmaker .btn:hover:not(:disabled) {
   border-color: var(--text-muted);
 }
-.btn:disabled {
+.soundmaker .btn:disabled {
   opacity: 0.45;
   cursor: default;
 }
-.btn.primary {
+.soundmaker .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-text);
   font-weight: 600;
 }
-.btn.subtle {
+.soundmaker .btn.subtle {
   background: transparent;
 }
-.btn.danger {
+.soundmaker .btn.danger {
   color: var(--danger);
 }
-.btn.small {
+.soundmaker .btn.small {
   padding: 2px 8px;
   font-size: 12px;
   margin-left: 6px;
 }
 
-.icon-btn {
+.soundmaker .icon-btn {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 50%;
@@ -197,23 +170,23 @@ button:focus-visible,
   color: var(--text-muted);
   flex: none;
 }
-.icon-btn:hover:not(:disabled) {
+.soundmaker .icon-btn:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text);
 }
-.icon-btn.playing {
+.soundmaker .icon-btn.playing {
   color: var(--accent);
   border-color: var(--accent);
 }
-.icon-btn.small {
+.soundmaker .icon-btn.small {
   width: 22px;
   height: 22px;
 }
-.icon-btn:disabled {
+.soundmaker .icon-btn:disabled {
   opacity: 0.3;
 }
 
-.badge {
+.soundmaker .badge {
   display: inline-block;
   font-size: 11px;
   padding: 1px 6px;
@@ -227,26 +200,26 @@ button:focus-visible,
   white-space: nowrap;
   vertical-align: middle;
 }
-.badge.accent {
+.soundmaker .badge.accent {
   background: var(--accent-soft);
   color: var(--accent);
 }
-.badge.warn {
+.soundmaker .badge.warn {
   color: var(--warn);
 }
-.badge.pair {
+.soundmaker .badge.pair {
   background: transparent;
   border: 1px solid var(--border);
 }
 
 /* layout */
-.app {
+.soundmaker .app {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.topbar {
+.soundmaker .topbar {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -254,23 +227,23 @@ button:focus-visible,
   border-bottom: 1px solid var(--border);
   background: var(--bg-raised);
 }
-.brand {
+.soundmaker .brand {
   font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.logo {
+.soundmaker .logo {
   color: var(--accent);
 }
-.project-name {
+.soundmaker .project-name {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.workspace {
+.soundmaker .workspace {
   flex: 1;
   min-height: 0;
   display: grid;
@@ -278,40 +251,40 @@ button:focus-visible,
 }
 
 /* sidebar */
-.sidebar {
+.soundmaker .sidebar {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
   background: var(--bg-raised);
 }
-.import-row .btn.small {
+.soundmaker .import-row .btn.small {
   margin-left: 0;
 }
-.sidebar-actions {
+.soundmaker .sidebar-actions {
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   border-bottom: 1px solid var(--border);
 }
-.bank-list {
+.soundmaker .bank-list {
   overflow-y: auto;
   padding: 6px 6px 16px;
 }
-.bank-list h3 {
+.soundmaker .bank-list h3 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
   margin: 12px 8px 4px;
 }
-.bank-list ul {
+.soundmaker .bank-list ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.bank-item {
+.soundmaker .bank-item {
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -324,63 +297,63 @@ button:focus-visible,
   cursor: pointer;
   text-align: left;
 }
-.bank-item:hover {
+.soundmaker .bank-item:hover {
   background: var(--bg-hover);
 }
-.bank-item.active {
+.soundmaker .bank-item.active {
   background: var(--bg-selected);
 }
-.bank-item.missing .bank-label {
+.soundmaker .bank-item.missing .bank-label {
   color: var(--text-muted);
 }
-.bank-label {
+.soundmaker .bank-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.bank-meta {
+.soundmaker .bank-meta {
   display: flex;
   gap: 6px;
   align-items: center;
   font-size: 11px;
   flex: none;
 }
-.guess {
+.soundmaker .guess {
   color: var(--text-muted);
   margin-left: 3px;
   font-size: 11px;
 }
 
 /* bank view */
-.bank-view {
+.soundmaker .bank-view {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
 }
-.empty-state {
+.soundmaker .empty-state {
   padding: 32px;
   overflow-y: auto;
   max-width: 720px;
 }
-.steps {
+.soundmaker .steps {
   padding-left: 18px;
   margin: 8px 0 16px;
 }
-.steps li {
+.soundmaker .steps li {
   margin-bottom: 6px;
 }
-.bank-header {
+.soundmaker .bank-header {
   padding: 14px 16px 10px;
   display: flex;
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid var(--border);
 }
-.note {
+.soundmaker .note {
   color: var(--warn);
 }
-.toolbar {
+.soundmaker .toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -388,20 +361,20 @@ button:focus-visible,
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
-.toolbar input[type='search'] {
+.soundmaker .toolbar input[type="search"] {
   flex: 1;
   min-width: 160px;
 }
-.table-wrap {
+.soundmaker .table-wrap {
   overflow: auto;
   flex: 1;
   min-height: 0;
 }
-table.streams {
+.soundmaker table.streams {
   width: 100%;
   border-collapse: collapse;
 }
-.streams th {
+.soundmaker .streams th {
   position: sticky;
   top: 0;
   background: var(--bg);
@@ -415,51 +388,51 @@ table.streams {
   border-bottom: 1px solid var(--border);
   z-index: 1;
 }
-.streams td {
+.soundmaker .streams td {
   padding: 3px 8px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-.streams tr {
+.soundmaker .streams tr {
   cursor: default;
   user-select: none;
 }
-.streams tbody tr:hover {
+.soundmaker .streams tbody tr:hover {
   background: var(--bg-hover);
 }
-.streams tr.selected {
+.soundmaker .streams tr.selected {
   background: var(--bg-selected);
 }
-.streams tr.focus td:first-child {
+.soundmaker .streams tr.focus td:first-child {
   box-shadow: inset 3px 0 0 var(--accent);
 }
-.streams tr.drop {
+.soundmaker .streams tr.drop {
   outline: 2px dashed var(--accent);
   outline-offset: -2px;
 }
-.streams tr.disabled {
+.soundmaker .streams tr.disabled {
   opacity: 0.5;
 }
-.col-play {
+.soundmaker .col-play {
   width: 36px;
 }
-.col-id {
+.soundmaker .col-id {
   width: 90px;
 }
-.col-num {
+.soundmaker .col-num {
   width: 80px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.name-cell {
+.soundmaker .name-cell {
   max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.name-cell .badge {
+.soundmaker .name-cell .badge {
   margin-left: 6px;
 }
-.status-cell {
+.soundmaker .status-cell {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -467,32 +440,32 @@ table.streams {
 }
 
 /* inspector */
-.inspector {
+.soundmaker .inspector {
   border-left: 1px solid var(--border);
   overflow-y: auto;
   background: var(--bg-raised);
   min-height: 0;
 }
-.inspector-empty {
+.soundmaker .inspector-empty {
   padding: 24px 16px;
 }
-.panel {
+.soundmaker .panel {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.panel select {
+.soundmaker .panel select {
   flex: 1;
   min-width: 0;
 }
-.drop-zone.dragging {
+.soundmaker .drop-zone.dragging {
   background: var(--accent-soft);
   outline: 2px dashed var(--accent);
   outline-offset: -4px;
 }
-.field {
+.soundmaker .field {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -500,37 +473,37 @@ table.streams {
   color: var(--text-muted);
   min-width: 0;
 }
-.field > span:first-child {
+.soundmaker .field > span:first-child {
   font-weight: 500;
 }
-.field input,
-.field select {
+.soundmaker .field input,
+.soundmaker .field select {
   color: var(--text);
 }
-.grid2 {
+.soundmaker .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 12px;
 }
-.num-input {
+.soundmaker .num-input {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
 }
-.num-input input {
+.soundmaker .num-input input {
   width: 76px;
 }
-.unit {
+.soundmaker .unit {
   font-size: 11px;
   color: var(--text-muted);
 }
-.wave-row {
+.soundmaker .wave-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.waveform {
+.soundmaker .waveform {
   position: relative;
   flex: 1;
   min-width: 0;
@@ -538,11 +511,11 @@ table.streams {
   border-radius: var(--radius);
   overflow: hidden;
 }
-.waveform canvas {
+.soundmaker .waveform canvas {
   display: block;
   width: 100%;
 }
-.waveform-label {
+.soundmaker .waveform-label {
   position: absolute;
   top: 3px;
   left: 6px;
@@ -553,7 +526,7 @@ table.streams {
 }
 
 /* toast */
-.toast {
+.soundmaker .toast {
   position: fixed;
   bottom: 18px;
   left: 50%;
@@ -569,12 +542,12 @@ table.streams {
   z-index: 20;
   cursor: pointer;
 }
-.toast.error {
+.soundmaker .toast.error {
   border-left-color: var(--danger);
 }
 
 /* dialogs */
-.modal-backdrop {
+.soundmaker .modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -582,7 +555,7 @@ table.streams {
   place-items: center;
   z-index: 10;
 }
-.modal {
+.soundmaker .modal {
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -594,41 +567,41 @@ table.streams {
   flex-direction: column;
   gap: 14px;
 }
-.modal header {
+.soundmaker .modal header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.modal fieldset {
+.soundmaker .modal fieldset {
   border: 0;
   padding: 0;
   margin: 0;
 }
-.modal.help ol {
+.soundmaker .modal.help ol {
   padding-left: 18px;
   margin: 0;
 }
-.modal.help li {
+.soundmaker .modal.help li {
   margin-bottom: 10px;
 }
-.build-result {
+.soundmaker .build-result {
   background: var(--bg-sunken);
   border-radius: var(--radius);
   padding: 10px 12px;
 }
-.build-result ul {
+.soundmaker .build-result ul {
   margin: 4px 0;
   padding-left: 18px;
 }
-.warnings li {
+.soundmaker .warnings li {
   color: var(--warn);
 }
 
 /* extract from game */
-.modal.wide {
+.soundmaker .modal.wide {
   width: min(760px, 94vw);
 }
-.path-row {
+.soundmaker .path-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -637,30 +610,30 @@ table.streams {
   background: var(--bg-sunken);
   border-radius: var(--radius);
 }
-.path-row > div {
+.soundmaker .path-row > div {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.field-title {
+.soundmaker .field-title {
   font-weight: 600;
   font-size: 12px;
 }
-.path {
+.soundmaker .path {
   overflow-wrap: anywhere;
 }
-.game-banks {
+.soundmaker .game-banks {
   max-height: 320px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px 12px;
 }
-.game-banks section {
+.soundmaker .game-banks section {
   margin-top: 8px;
 }
-.game-banks ul {
+.soundmaker .game-banks ul {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -668,34 +641,34 @@ table.streams {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px 16px;
 }
-.game-banks label {
+.soundmaker .game-banks label {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 2px 0;
   min-width: 0;
 }
-.game-banks label > span:nth-child(2) {
+.soundmaker .game-banks label > span:nth-child(2) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.grow {
+.soundmaker .grow {
   flex: 1;
 }
-a {
+.soundmaker a {
   color: var(--accent);
 }
 
 /* first launch */
-.setup {
+.soundmaker .setup {
   flex: 1;
   display: grid;
   place-items: center;
   padding: 24px;
   overflow-y: auto;
 }
-.setup-card {
+.soundmaker .setup-card {
   width: min(620px, 94vw);
   background: var(--bg-raised);
   border: 1px solid var(--border);
@@ -705,12 +678,12 @@ a {
   flex-direction: column;
   gap: 14px;
 }
-.setup-card header {
+.soundmaker .setup-card header {
   display: flex;
   justify-content: space-between;
 }
-.setup-option,
-.pack-status {
+.soundmaker .setup-option,
+.soundmaker .pack-status {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -718,27 +691,27 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-.setup-option h3 {
+.soundmaker .setup-option h3 {
   margin: 0;
   font-size: 14px;
 }
-.setup-option p {
+.soundmaker .setup-option p {
   margin: 0;
 }
-.pack-status {
+.soundmaker .pack-status {
   background: var(--bg-sunken);
   gap: 6px;
 }
-.warn-text {
+.soundmaker .warn-text {
   color: var(--warn);
 }
 
 /* tabs */
-.tabs {
+.soundmaker .tabs {
   display: flex;
   gap: 2px;
 }
-.tabs button {
+.soundmaker .tabs button {
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -747,67 +720,67 @@ a {
   color: var(--text-muted);
   font-weight: 600;
 }
-.tabs button.on {
+.soundmaker .tabs button.on {
   color: var(--text);
   border-bottom-color: var(--accent);
 }
 
 /* weapon view */
-.segmented {
+.soundmaker .segmented {
   display: inline-flex;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
 }
-.segmented button {
+.soundmaker .segmented button {
   background: transparent;
   border: 0;
   padding: 6px 12px;
   cursor: pointer;
   color: var(--text-muted);
 }
-.segmented.small button {
+.soundmaker .segmented.small button {
   padding: 4px 10px;
   font-size: 12px;
 }
-.segmented button.on {
+.soundmaker .segmented button.on {
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 600;
 }
-.preview-bar {
+.soundmaker .preview-bar {
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.btn.playing {
+.soundmaker .btn.playing {
   outline: 2px solid var(--accent);
 }
-.role-group {
+.soundmaker .role-group {
   padding: 4px 0 8px;
   border-bottom: 1px solid var(--border);
 }
-.role-group.drop {
+.soundmaker .role-group.drop {
   outline: 2px dashed var(--accent);
   outline-offset: -2px;
 }
-.role-header {
+.soundmaker .role-header {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 16px 4px;
 }
-.role-header h3 {
+.soundmaker .role-header h3 {
   margin: 0;
 }
-.role-group table.streams td:first-child {
+.soundmaker .role-group table.streams td:first-child {
   padding-left: 16px;
 }
 
 /* sound usage */
-.bank-summary {
+.soundmaker .bank-summary {
   display: block;
   font-size: 11px;
   color: var(--text-muted);
@@ -815,7 +788,7 @@ a {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.usage-cell {
+.soundmaker .usage-cell {
   /* takes the room left in the row and truncates */
   width: 100%;
   max-width: 0;
@@ -823,25 +796,25 @@ a {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.col-code {
+.soundmaker .col-code {
   width: 36px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.code-lookup {
+.soundmaker .code-lookup {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin: 8px 0;
 }
-.code-lookup .row input {
+.soundmaker .code-lookup .row input {
   flex: 1;
   min-width: 0;
 }
-.code-lookup.compact {
+.soundmaker .code-lookup.compact {
   margin: 0 0 6px;
 }
-fieldset.scope {
+.soundmaker fieldset.scope {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px 12px;
@@ -852,54 +825,54 @@ fieldset.scope {
 }
 
 /* simple gun view */
-.role-header .role-meaning {
+.soundmaker .role-header .role-meaning {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.desc-cell {
+.soundmaker .desc-cell {
   /* takes the room left in the row; long lines truncate instead of scrolling the table */
   width: 100%;
   max-width: 0;
 }
-.desc-cell .desc,
-.desc-cell .file-label {
+.soundmaker .desc-cell .desc,
+.soundmaker .desc-cell .file-label {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.file-label .shared-with {
+.soundmaker .file-label .shared-with {
   color: var(--warn);
 }
-.legend {
+.soundmaker .legend {
   margin: 0;
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
 }
-.role-header .select-buttons {
+.soundmaker .role-header .select-buttons {
   flex: none;
   gap: 4px;
 }
-.heard {
+.soundmaker .heard {
   white-space: nowrap;
   font-size: 12px;
   color: var(--text-muted);
 }
-.heard-you {
+.soundmaker .heard-you {
   color: var(--accent);
 }
-.heard-everyone {
+.soundmaker .heard-everyone {
   color: var(--ok);
 }
-.row.wrap {
+.soundmaker .row.wrap {
   flex-wrap: wrap;
 }
-.preview-bar .row + .row {
+.soundmaker .preview-bar .row + .row {
   margin-top: 6px;
 }
-.preview-note {
+.soundmaker .preview-note {
   margin: 6px 0 0;
 }

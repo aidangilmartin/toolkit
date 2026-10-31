@@ -17,20 +17,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- CodeWalker by dexyfex, bundled into the bridge. See THIRD_PARTY_NOTICES.md. -->
+    <!-- CodeWalker by dexyfex: compiled against, never shipped. The player downloads CodeWalker and the bridge loads it from there (see Program.UseCodeWalker). -->
     <Reference Include="CodeWalker.Core">
       <HintPath>$(CodeWalkerRuntime)CodeWalker.Core.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="SharpDX">
       <HintPath>$(CodeWalkerRuntime)SharpDX.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="SharpDX.Mathematics">
       <HintPath>$(CodeWalkerRuntime)SharpDX.Mathematics.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <!-- Windows voices for the in-game ID pack (speak command); a no-op stub elsewhere -->
     <PackageReference Include="System.Speech" Version="8.0.0" />
-    <!-- CodeWalker's list of known names, used to label streams -->
-    <None Include="$(CodeWalkerRuntime)strings.txt" Link="strings.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
 </Project>

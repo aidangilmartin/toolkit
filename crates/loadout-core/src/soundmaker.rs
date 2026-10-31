@@ -54,11 +54,9 @@ pub enum BridgeSource {
     /// An executable on disk (development builds, tests).
     Path(PathBuf),
     /// Built into Loadout's exe, written out to the sound maker's folder on first use, so the
-    /// portable exe has it too. `strings` is CodeWalker's list of known names.
-    Embedded {
-        exe: &'static [u8],
-        strings: &'static [u8],
-    },
+    /// portable exe has it too. (It holds no CodeWalker code: that comes from the player's own
+    /// CodeWalker download.)
+    Embedded(&'static [u8]),
 }
 
 pub struct SoundMaker {
@@ -98,7 +96,7 @@ impl SoundMaker {
         match &self.source {
             BridgeSource::None => false,
             BridgeSource::Path(p) => p.is_file(),
-            BridgeSource::Embedded { .. } => true,
+            BridgeSource::Embedded(_) => true,
         }
     }
 
@@ -113,9 +111,9 @@ impl SoundMaker {
         match &self.source {
             BridgeSource::None => Err(missing()),
             BridgeSource::Path(p) => p.is_file().then(|| p.clone()).ok_or_else(missing),
-            BridgeSource::Embedded { exe, strings } => {
+            BridgeSource::Embedded(exe) => {
                 let installed = self.installed.get_or_init(|| {
-                    install_bridge(&self.root.join("bridge"), exe, strings)
+                    install_bridge(&self.root.join("bridge"), exe)
                         .inspect_err(|e| log::warn!("couldn't write out the bridge: {e}"))
                         .ok()
                 });
@@ -317,16 +315,14 @@ impl SoundMaker {
 
 /// Writes the embedded bridge into `<dir>/<content hash>/`, once per version, and removes
 /// older versions.
-fn install_bridge(dir: &Path, exe: &[u8], strings: &[u8]) -> Result<PathBuf> {
+fn install_bridge(dir: &Path, exe: &[u8]) -> Result<PathBuf> {
     let mut hash = fsutil::hash_bytes(exe);
     hash.truncate(16);
     let target = dir.join(&hash);
     let exe_path = target.join(BRIDGE_FILE);
-    let complete = fs::metadata(&exe_path).is_ok_and(|m| m.len() == exe.len() as u64)
-        && fs::metadata(target.join("strings.txt")).is_ok_and(|m| m.len() == strings.len() as u64);
+    let complete = fs::metadata(&exe_path).is_ok_and(|m| m.len() == exe.len() as u64);
     if !complete {
         fs::create_dir_all(&target).ctx_path("create folder", &target)?;
-        fsutil::write_atomic(&target.join("strings.txt"), strings)?;
         fsutil::write_atomic(&exe_path, exe)?;
         #[cfg(unix)]
         {
@@ -570,13 +566,7 @@ echo "{\"ok\":true,\"result\":{\"first\":\"$1\",\"count\":$#}}""#,
         static V1: &[u8] = b"#!/bin/sh\necho '{\"ok\":true,\"result\":1}'\n";
         static V2: &[u8] = b"#!/bin/sh\necho '{\"ok\":true,\"result\":2}'\n";
         let run = |exe: &'static [u8]| {
-            let sm = SoundMaker::new(
-                root.clone(),
-                BridgeSource::Embedded {
-                    exe,
-                    strings: b"names",
-                },
-            );
+            let sm = SoundMaker::new(root.clone(), BridgeSource::Embedded(exe));
             assert!(sm.bridge_available());
             sm.run_bridge(&[], &mut |_| {}).unwrap()
         };

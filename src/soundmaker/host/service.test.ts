@@ -21,6 +21,42 @@ function fakeShell(over: Partial<Shell> = {}): Shell {
 }
 
 describe("sound maker service", () => {
+  it("remembers the CodeWalker folder and passes it to every bridge command", async () => {
+    const root = tmp();
+    mkdirSync(join(root, "vanilla"));
+    writeFileSync(join(root, "vanilla", "RESIDENT.rpf"), "");
+    const calls: string[][] = [];
+    const host = {
+      ...nodeHost(root),
+      runBridge: async <T>(args: string[]): Promise<T> => {
+        calls.push(args);
+        return (
+          args[0] === "probe-codewalker"
+            ? { codeWalkerVersion: "1.0.0.0" }
+            : {
+                kind: "archives",
+                archives: [{ name: "RESIDENT.rpf" }],
+                warnings: [],
+                manifest: null,
+              }
+        ) as T;
+      },
+    };
+    const api = createService(host, fakeShell({ pickFolder: async () => "/games/CodeWalker" }));
+    expect((await api.getGameSettings()).codeWalkerPath).toBeNull();
+    const s = await api.setCodeWalkerPath();
+    expect(s).toMatchObject({ codeWalkerPath: "/games/CodeWalker", codeWalkerVersion: "1.0.0.0" });
+    expect(calls[0]).toEqual(["probe-codewalker", "--codewalker", "/games/CodeWalker"]);
+    expect((await api.getVanillaStatus()).archives).toEqual(["RESIDENT.rpf"]);
+    expect(calls[1]).toEqual([
+      "inspect-vanilla",
+      "--in",
+      join(root, "vanilla"),
+      "--codewalker",
+      "/games/CodeWalker",
+    ]);
+  });
+
   it("uses the GTA V folder Loadout found until one is picked", async () => {
     const found = tmp();
     writeFileSync(join(found, "GTA5.exe"), "");
@@ -34,6 +70,8 @@ describe("sound maker service", () => {
       gtaValid: true,
       confirmed: false,
       bridgeAvailable: false,
+      codeWalkerPath: null,
+      codeWalkerVersion: null,
     });
     await expect(api.setGtaPath(other)).rejects.toThrow(/gta5.exe was not found/);
     writeFileSync(join(other, "gta5_enhanced.exe"), "");

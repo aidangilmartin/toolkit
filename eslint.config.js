@@ -21,6 +21,17 @@ export default tseslint.config(
     },
   },
   {
+    // The sound maker's editor came over from the Gun Soundpack Maker, which didn't use the
+    // React Compiler rules. Its effects work as written; tidy them up separately.
+    files: ["src/soundmaker/ui/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/immutability": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
     files: ["scripts/**/*.mjs"],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },

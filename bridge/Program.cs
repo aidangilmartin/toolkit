@@ -1,10 +1,12 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace GunpackBridge;
 
 /// <summary>
-/// Command-line bridge between Gun Soundpack Maker and CodeWalker.Core: opens the user's GTA V
+/// Command-line bridge between Loadout's sound maker and CodeWalker.Core (loaded from the
+/// player's own CodeWalker download): opens the user's GTA V
 /// archives and extracts the weapon sound banks. Prints one JSON object on stdout; progress goes to
 /// stderr as JSON lines.
 /// </summary>
@@ -29,28 +31,19 @@ public static class Program
                 Console.Error.WriteLine(Usage);
                 return 0;
             }
-            object result = opts.Command switch
-            {
-                "probe" => Commands.Probe(opts),
-                "list" => Commands.List(opts),
-                "extract" => Commands.Extract(opts),
-                "scan" => GameScan.Run(opts),
-                "build-rpf" => RpfBuild.Run(opts),
-                "speak" => Speech.Run(opts),
-                "make-test-game" => TestGame.Make(opts),
-                "make-vanilla-pack" => Vanilla.Make(opts),
-                "inspect-vanilla" => Vanilla.Inspect(opts),
-                "zip" => Vanilla.Zip(opts),
-                "unzip" => Vanilla.Unzip(opts),
-                _ => throw new BridgeException("usage", $"Unknown command '{opts.Command}'.\n{Usage}")
-            };
-            Output.Write(new { ok = true, result });
+            CodeWalkerDir = opts.Get("codewalker") ?? Environment.GetEnvironmentVariable("GSM_CODEWALKER");
+            if (!CommandsWithoutCodeWalker.Contains(opts.Command)) UseCodeWalker(CodeWalkerDir);
+            Output.Write(new { ok = true, result = Run(opts) });
             return 0;
         }
         catch (Exception e)
         {
             var ex = e is TargetInvocationException { InnerException: not null } t ? t.InnerException! : e;
             if (ex is BridgeException b) return Output.Fail(b.Code, b.Message);
+            if (ex is FileNotFoundException or FileLoadException or BadImageFormatException && ex.Message.Contains("CodeWalker", StringComparison.OrdinalIgnoreCase))
+            {
+                return Output.Fail("codewalker-incompatible", $"Couldn't load CodeWalker: {ex.Message}");
+            }
             if (ex is MissingMethodException or MissingFieldException or TypeLoadException)
             {
                 return Output.Fail("codewalker-incompatible", $"Internal CodeWalker error: {ex.Message}");
@@ -59,8 +52,65 @@ public static class Program
         }
     }
 
+    /// <summary>
+    /// The CodeWalker folder the player downloaded (--codewalker, or GSM_CODEWALKER). CodeWalker
+    /// isn't shipped with the app: CodeWalker.Core and SharpDX load from there.
+    /// </summary>
+    public static string? CodeWalkerDir { get; private set; }
+
+    static readonly HashSet<string> CommandsWithoutCodeWalker = ["speak", "zip", "unzip", "probe-codewalker"];
+
+    /// <summary>The files the bridge loads from a CodeWalker download.</summary>
+    static readonly string[] CodeWalkerFiles = ["CodeWalker.Core.dll", "SharpDX.dll", "SharpDX.Mathematics.dll"];
+
+    static void UseCodeWalker(string? dir)
+    {
+        if (string.IsNullOrWhiteSpace(dir))
+            throw new BridgeException("no-codewalker", "Choose your CodeWalker folder first (the one with CodeWalker.exe).");
+        var missing = CodeWalkerFiles.Where(f => !File.Exists(Path.Combine(dir, f))).ToList();
+        if (missing.Count > 0)
+            throw new BridgeException("no-codewalker", $"{dir} doesn't look like a CodeWalker folder: {string.Join(", ", missing)} not found. Choose the folder you extracted CodeWalker to (the one with CodeWalker.exe).");
+        System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+        {
+            var path = Path.Combine(dir, $"{name.Name}.dll");
+            return File.Exists(path) ? context.LoadFromAssemblyPath(Path.GetFullPath(path)) : null;
+        };
+    }
+
+    /// <summary>Checks a CodeWalker folder and says which version it holds.</summary>
+    static object ProbeCodeWalker(Options opts)
+    {
+        var dir = opts.Require("codewalker");
+        UseCodeWalker(dir);
+        return new { codeWalkerVersion = CodeWalkerVersion(), hasStrings = File.Exists(Path.Combine(dir, "strings.txt")) };
+    }
+
+    // Kept out of Main so CodeWalker types are only loaded once the resolver above is in place.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static string? CodeWalkerVersion() => typeof(CodeWalker.GameFiles.GTA5Keys).Assembly.GetName().Version?.ToString();
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static object Run(Options opts) =>
+        opts.Command switch
+        {
+            "probe-codewalker" => ProbeCodeWalker(opts),
+            "probe" => Commands.Probe(opts),
+            "list" => Commands.List(opts),
+            "extract" => Commands.Extract(opts),
+            "scan" => GameScan.Run(opts),
+            "build-rpf" => RpfBuild.Run(opts),
+            "speak" => Speech.Run(opts),
+            "make-test-game" => TestGame.Make(opts),
+            "make-vanilla-pack" => Vanilla.Make(opts),
+            "inspect-vanilla" => Vanilla.Inspect(opts),
+            "zip" => Vanilla.Zip(opts),
+            "unzip" => Vanilla.Unzip(opts),
+            _ => throw new BridgeException("usage", $"Unknown command '{opts.Command}'.\n{Usage}")
+        };
+
     const string Usage = """
-        Usage: gunpack-bridge <command> [options]
+        Usage: gunpack-bridge <command> [options] --codewalker <CodeWalker folder>
+          probe-codewalker --codewalker <dir>               check a CodeWalker download and say its version
           probe   --gta <GTA V folder>                      check the game folder and decryption keys
           scan    --gta <GTA V folder> --out <dir> [--names <file>]
                                                             index every gun's sounds, map what every sound is for

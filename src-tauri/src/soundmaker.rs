@@ -24,10 +24,7 @@ pub fn bridge_source() -> BridgeSource {
     }
     #[cfg(embedded_bridge)]
     {
-        BridgeSource::Embedded {
-            exe: include_bytes!(env!("LOADOUT_BRIDGE_EXE")),
-            strings: include_bytes!(env!("LOADOUT_BRIDGE_STRINGS")),
-        }
+        BridgeSource::Embedded(include_bytes!(env!("LOADOUT_BRIDGE_EXE")))
     }
     #[cfg(not(embedded_bridge))]
     {

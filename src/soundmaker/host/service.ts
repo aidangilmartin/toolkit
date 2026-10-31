@@ -52,11 +52,27 @@ export const AUDIO_EXTENSIONS = ["wav", "mp3", "ogg", "flac", "m4a", "aac", "opu
 /** The weapon index version that comes with a sound usage map. */
 const INDEX_VERSION = 3;
 
-export function createService(host: Host, shell: Shell): Api {
-  const root = host.root;
-  const library = new TemplateLibrary(host, join(root, "templates"));
-  const labels = new LabelStore(host, join(root, "labels.json"));
-  const settings = new JsonStore<{ gtaPath: string }>(host, join(root, "settings.json"));
+/** Where players download CodeWalker (it isn't shipped with Loadout). */
+export const CODEWALKER_DOWNLOAD =
+  "https://www.gta5-mods.com/tools/codewalker-gtav-interactive-3d-map";
+
+export function createService(baseHost: Host, shell: Shell): Api {
+  const root = baseHost.root;
+  const library = new TemplateLibrary(baseHost, join(root, "templates"));
+  const labels = new LabelStore(baseHost, join(root, "labels.json"));
+  const settings = new JsonStore<{
+    gtaPath: string;
+    codeWalkerPath: string;
+    codeWalkerVersion: string;
+  }>(baseHost, join(root, "settings.json"));
+  // Every bridge command gets the player's CodeWalker folder.
+  const host: Host = {
+    ...baseHost,
+    runBridge: async (args, onProgress) => {
+      const cw = (await settings.get()).codeWalkerPath;
+      return baseHost.runBridge(cw ? [...args, "--codewalker", cw] : args, onProgress);
+    },
+  };
   const indexPath = join(root, "weapon-index.json");
   const indexMetaPath = join(root, "weapon-index.meta.json");
   const mapPath = join(root, "sound-map.json");
@@ -85,6 +101,8 @@ export function createService(host: Host, shell: Shell): Api {
       gtaValid: !!gtaPath && (await isGtaFolder(host, gtaPath)),
       confirmed: !!s.gtaPath && (await host.exists(indexPath)),
       bridgeAvailable: await host.bridgeAvailable(),
+      codeWalkerPath: s.codeWalkerPath ?? null,
+      codeWalkerVersion: s.codeWalkerVersion || null,
     };
   }
 
@@ -299,6 +317,21 @@ export function createService(host: Host, shell: Shell): Api {
           `gta5.exe was not found in ${dir}. Choose the folder GTA V is installed in.`,
         );
       await settings.update({ gtaPath: dir });
+      return gameSettings();
+    },
+
+    setCodeWalkerPath: async (path) => {
+      const dir = path ?? (await shell.pickFolder("Select the folder you extracted CodeWalker to"));
+      if (!dir) return gameSettings();
+      const probe = await baseHost.runBridge<{ codeWalkerVersion: string | null }>([
+        "probe-codewalker",
+        "--codewalker",
+        dir,
+      ]);
+      await settings.update({
+        codeWalkerPath: dir,
+        codeWalkerVersion: probe.codeWalkerVersion ?? "",
+      });
       return gameSettings();
     },
 

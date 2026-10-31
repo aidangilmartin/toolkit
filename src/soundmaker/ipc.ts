@@ -31,6 +31,10 @@ export interface GameSettings {
   /** True once a folder was confirmed by a successful scan. */
   confirmed: boolean;
   bridgeAvailable: boolean;
+  /** The CodeWalker folder the player downloaded (CodeWalker isn't shipped with Loadout). */
+  codeWalkerPath: string | null;
+  /** CodeWalker.Core's version, once the folder checked out. */
+  codeWalkerVersion: string | null;
 }
 
 /** A self-contained vanilla pack (made by the app, works without GTA V) or original archives only. */
@@ -143,6 +147,8 @@ export interface Api {
   getGameSettings(): Promise<GameSettings>;
   /** Opens a folder dialog (or uses `path`) and remembers the GTA V folder. */
   setGtaPath(path?: string): Promise<GameSettings>;
+  /** Opens a folder dialog (or uses `path`), checks it holds CodeWalker and remembers it. */
+  setCodeWalkerPath(path?: string): Promise<GameSettings>;
   getVanillaStatus(): Promise<VanillaStatus>;
   /** Copies a vanilla pack (folder, or .zip of one) into the app; opens a dialog unless `path` is given. */
   importVanillaPack(from: "folder" | "zip", path?: string): Promise<VanillaStatus | null>;
