@@ -38,7 +38,12 @@ public static class Program
         }
         catch (Exception e)
         {
-            var ex = e is TargetInvocationException { InnerException: not null } t ? t.InnerException! : e;
+            var ex = e;
+            // a CodeWalker type that fails to load surfaces wrapped, e.g. as "The type initializer
+            // for 'GameScan' threw an exception": report what actually went wrong
+            while (ex is TargetInvocationException or TypeInitializationException && ex.InnerException is not null)
+                ex = ex.InnerException;
+            Console.Error.WriteLine(e.ToString());
             if (ex is BridgeException b) return Output.Fail(b.Code, b.Message);
             if (ex is FileNotFoundException or FileLoadException or BadImageFormatException && ex.Message.Contains("CodeWalker", StringComparison.OrdinalIgnoreCase))
             {
