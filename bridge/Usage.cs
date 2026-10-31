@@ -277,6 +277,7 @@ public static class SoundUsage
     };
 
     static uint? Opt(MetaHash h) => h.Hash == 0 ? null : h.Hash;
+    static uint? Opt(uint h) => h == 0 ? null : h;
 
     /// <summary>The curves (dat16) a sound refers to: distance attenuation, crossfade and envelope shapes.</summary>
     public static IEnumerable<uint> CurvesOf(Dat54Sound s)
@@ -323,15 +324,15 @@ public static class SoundUsage
     public static object CategoryJson(Dat22Category c, uint? parent) => new
     {
         parent,
-        volume = (int)c.Volume,
-        pitch = (int)c.Pitch,
-        lpf = (int)c.LPFCutoff,
-        hpf = (int)c.HPFCutoff,
-        lpfDistanceCurve = Opt(c.LPFDistanceCurve),
-        hpfDistanceCurve = Opt(c.HPFDistanceCurve),
-        distanceRollOffScale = (int)c.DistanceRollOffScale,
-        plateauRollOffScale = (int)c.PlateauRollOffScale,
-        parentOverrides = (int)c.ParentOverrides
+        volume = CodeWalkerCompat.GetInt(c, "Volume"),
+        pitch = CodeWalkerCompat.GetInt(c, "Pitch", "Unk03"),
+        lpf = CodeWalkerCompat.GetInt(c, "LPFCutoff"),
+        hpf = CodeWalkerCompat.GetInt(c, "HPFCutoff"),
+        lpfDistanceCurve = Opt(CodeWalkerCompat.LpfCurve(c)),
+        hpfDistanceCurve = Opt(CodeWalkerCompat.HpfCurve(c)),
+        distanceRollOffScale = CodeWalkerCompat.GetInt(c, "DistanceRollOffScale", "Unk08"),
+        plateauRollOffScale = CodeWalkerCompat.GetInt(c, "PlateauRollOffScale", "Unk09"),
+        parentOverrides = CodeWalkerCompat.GetInt(c, "ParentOverrides", "Unk01")
     };
 
     /// <summary>Only the header fields the game data actually sets (absent fields use engine defaults).</summary>

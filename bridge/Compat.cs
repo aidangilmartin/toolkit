@@ -14,10 +14,27 @@ public static class CodeWalkerCompat
 
     public static bool IsWeaponSettings(RelData? rd) => rd is not null && WeaponSettings.IsInstanceOfType(rd);
 
-    /// <summary>A property both builds have under the same name, read by reflection.</summary>
-    public static object? Get(object o, string name) =>
-        (o.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
-         ?? throw new MissingFieldException(o.GetType().Name, name)).GetValue(o);
+    /// <summary>
+    /// A property read by reflection, under its current name or the older names earlier builds used
+    /// (dev48 still calls some category fields Unk01, Unk03…).
+    /// </summary>
+    public static object? Get(object o, params string[] names)
+    {
+        foreach (var n in names)
+            if (o.GetType().GetProperty(n, BindingFlags.Public | BindingFlags.Instance) is { } p) return p.GetValue(o);
+        foreach (var n in names)
+            if (o.GetType().GetField(n, BindingFlags.Public | BindingFlags.Instance) is { } f) return f.GetValue(o);
+        throw new MissingFieldException(o.GetType().Name, names[0]);
+    }
+
+    public static int GetInt(object o, params string[] names) => Convert.ToInt32(Get(o, names));
+
+    public static uint GetHash(object o, params string[] names) =>
+        Get(o, names) switch { MetaHash h => h.Hash, var v => Convert.ToUInt32(v) };
+
+    // Dat22Category fields: current name, then dev48's
+    public static uint LpfCurve(Dat22Category c) => GetHash(c, "LPFDistanceCurve", "LPFCutoffCurve");
+    public static uint HpfCurve(Dat22Category c) => GetHash(c, "HPFDistanceCurve", "HPFCutoffCurve");
 
     static Type Find(params string[] names)
     {

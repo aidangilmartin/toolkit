@@ -430,8 +430,10 @@ public static class GameScan
             {
                 uint? parent = parentOf.TryGetValue(h, out var p) ? p : null;
                 categories[h.ToString()] = SoundUsage.CategoryJson(c, parent);
-                if (c.LPFDistanceCurve != 0) curveHashes.Add(c.LPFDistanceCurve);
-                if (c.HPFDistanceCurve != 0) curveHashes.Add(c.HPFDistanceCurve);
+                var lpfCurve = CodeWalkerCompat.LpfCurve(c);
+                var hpfCurve = CodeWalkerCompat.HpfCurve(c);
+                if (lpfCurve != 0) curveHashes.Add(lpfCurve);
+                if (hpfCurve != 0) curveHashes.Add(hpfCurve);
                 h = parent ?? 0;
             }
         }
